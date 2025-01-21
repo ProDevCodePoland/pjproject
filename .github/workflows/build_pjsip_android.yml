@@ -17,19 +17,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v2
-        with:
-          sdk-version: '35.0.2'
-          ndk-version: 'r27c' 
-
       # Step 2: Set up Android NDK
       - name: Set up Android NDK
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r27c # Specify the NDK version (latest stable or preferred version)
 
-      # Step 3: Add NDK tools to PATH
+      # Step 3: Add NDK to PATH
       - name: Add NDK to PATH
         run: |
           export NDK_HOME=/opt/hostedtoolcache/ndk/r27c/x64
@@ -37,22 +31,25 @@ jobs:
           echo "NDK_HOME set to $NDK_HOME"
           echo "Updated PATH: $PATH"
 
-      # Step 3: Set up environment variables and build PJSIP using ndk-build
+      # Step 4: Verify repository structure
+      - name: Verify repository structure
+        run: |
+          echo "Listing repository contents:"
+          ls -al /home/runner/work/pjproject/pjproject/
+          ls -al /home/runner/work/pjproject/pjproject/jni/
+
+      # Step 5: Set up environment variables and build PJSIP using ndk-build
       - name: Build PJSIP
         run: |
-          # Set up the Android NDK project path
-          export NDK_PROJECT_PATH=$(pwd)
-          
           # Ensure the Android.mk file exists in the correct directory
+          export NDK_PROJECT_PATH=$(pwd)
           export APP_BUILD_SCRIPT=$(pwd)/jni/Android.mk
-          
-          # Set the minimum platform version for Android
           export APP_PLATFORM=android-21
 
           # Run ndk-build to build PJSIP
           ndk-build
 
-      # Step 4: Upload the compiled libraries as artifacts
+      # Step 6: Upload the compiled libraries as artifacts
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
