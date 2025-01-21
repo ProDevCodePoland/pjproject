@@ -1,0 +1,47 @@
+name: Build PJSIP for Android
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-pjsip:
+    name: Build PJSIP
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Checkout repository (your forked branch)
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ github.repository }}
+        ref: ${{ github.ref_name }}
+
+    # 2. Set up Android NDK
+    - name: Set up Android NDK
+      uses: android-actions/setup-ndk@v2
+      with:
+        ndk-version: r25b 
+
+    # 3. Install dependencies
+    - name: Install dependencies
+      run: sudo apt-get install -y build-essential python3
+
+    # 4. Build PJSIP for Android
+    - name: Build PJSIP
+      env:
+        ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
+      run: |
+        cd pjproject
+        export ANDROID_NDK_ROOT=$ANDROID_NDK
+        ./configure-android
+        make dep && make
+    # 5. Upload the compiled libraries as artifacts
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: pjsip-libs
+        path: pjproject/output/lib
