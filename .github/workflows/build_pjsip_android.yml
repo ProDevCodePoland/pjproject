@@ -27,7 +27,7 @@ jobs:
         api-level: 35       
         ndk: 27.2.12479018   
         target: default       
-        channel: 3             
+        channel: stable             
 
     # 3. Install dependencies
     - name: Install dependencies
