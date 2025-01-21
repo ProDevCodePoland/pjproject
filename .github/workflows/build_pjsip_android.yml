@@ -21,13 +21,11 @@ jobs:
         ref: ${{ github.ref_name }}
 
       # Set up Android SDK and NDKM
-    - name: Set up Android SDK
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 35       
-        ndk: 27.2.12479018   
-        target: default       
-        channel: stable             
+    - name: Set up Android NDK
+      uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27c
+    - run: ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk
 
     # 3. Install dependencies
     - name: Install dependencies
