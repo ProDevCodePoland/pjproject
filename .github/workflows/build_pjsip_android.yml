@@ -17,11 +17,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up Android NDK
-      - name: Set up Android NDK
-        uses: nttld/setup-ndk@v1
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v2
         with:
-          ndk-version: r27c # Specify the NDK version (latest stable or preferred version)
+          sdk-version: '35.0.2'
+          ndk-version: 'r27c' 
 
       # Step 3: Set up environment variables and build PJSIP using ndk-build
       - name: Build PJSIP
