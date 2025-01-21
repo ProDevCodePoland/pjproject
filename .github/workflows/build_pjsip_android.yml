@@ -23,12 +23,19 @@ jobs:
         with:
           ndk-version: r27c # Specify the NDK version (latest stable or preferred version)
 
-      # Step 3: Build PJSIP using ndk-build
+      # Step 3: Set up environment variables and build PJSIP using ndk-build
       - name: Build PJSIP
         run: |
-          export NDK_PROJECT_PATH=.
-          export APP_BUILD_SCRIPT=./jni/Android.mk # Ensure this file exists in the specified location
-          export APP_PLATFORM=android-21 # Specify the minimum Android platform version
+          # Set up the Android NDK project path
+          export NDK_PROJECT_PATH=$(pwd)
+          
+          # Ensure the Android.mk file exists in the correct directory
+          export APP_BUILD_SCRIPT=$(pwd)/jni/Android.mk
+          
+          # Set the minimum platform version for Android
+          export APP_PLATFORM=android-21
+
+          # Run ndk-build to build PJSIP
           ndk-build
 
       # Step 4: Upload the compiled libraries as artifacts
