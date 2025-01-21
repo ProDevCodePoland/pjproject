@@ -41,22 +41,22 @@ jobs:
           cd /home/runner/work/pjproject/pjproject/pjsip-apps/src/swig
           make clean
 
-      # Step 5: Build for arm64-v8a architecture
-      - name: Build PJSIP for arm64-v8a
+      # Step 5: Configure PJSIP for arm64-v8a architecture
+      - name: Configure and Build PJSIP for arm64-v8a
         run: |
           cd /home/runner/work/pjproject/pjproject
           TARGET_ABI=arm64-v8a ./configure-android --use-ndk-cflags
           make dep && make clean && make
 
-      # Step 6: Build for armeabi-v7a architecture
-      - name: Build PJSIP for armeabi-v7a
+      # Step 6: Configure and Build PJSIP for armeabi-v7a architecture
+      - name: Configure and Build PJSIP for armeabi-v7a
         run: |
           cd /home/runner/work/pjproject/pjproject
           TARGET_ABI=armeabi-v7a ./configure-android --use-ndk-cflags
           make dep && make clean && make
 
-      # Step 7: Build for x86 architecture
-      - name: Build PJSIP for x86
+      # Step 7: Configure and Build PJSIP for x86 architecture
+      - name: Configure and Build PJSIP for x86
         run: |
           cd /home/runner/work/pjproject/pjproject
           TARGET_ABI=x86 ./configure-android --use-ndk-cflags
