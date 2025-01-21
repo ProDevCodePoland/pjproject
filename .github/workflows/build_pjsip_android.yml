@@ -5,7 +5,7 @@ on:
     branches:
       - main
   pull_request:
-  workflow_dispatch: # Umożliwia ręczne uruchamianie workflow
+  workflow_dispatch: # Allows manual triggering of the workflow
 
 jobs:
   build-pjsip:
@@ -13,27 +13,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repository
+      # Step 1: Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2. Set up Android NDK
+      # Step 2: Set up Android NDK
       - name: Set up Android NDK
         uses: nttld/setup-ndk@v1
         with:
-          ndk-version: r27c
+          ndk-version: r27c # Specify the NDK version (latest stable or preferred version)
 
-      # 3. Build PJSIP using ndk-build
+      # Step 3: Build PJSIP using ndk-build
       - name: Build PJSIP
         run: |
           export NDK_PROJECT_PATH=.
-          export APP_BUILD_SCRIPT=./Android.mk
-          export NDK_APPLICATION_MK=./Application.mk
+          export APP_BUILD_SCRIPT=./jni/Android.mk # Ensure this file exists in the specified location
+          export APP_PLATFORM=android-21 # Specify the minimum Android platform version
           ndk-build
 
-      # 4. Upload the compiled libraries as artifacts
+      # Step 4: Upload the compiled libraries as artifacts
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: pjsip-libs
-          path: ./libs # Upewnij się, że wskazuje na katalog z bibliotekami wynikowymi
+          path: ./libs # Path to the output directory containing .so libraries
