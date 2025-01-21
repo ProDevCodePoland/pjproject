@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-pjsip:
-    name: Build PJSIP
+    name: Build PJSIP for multiple Android architectures
     runs-on: ubuntu-latest
 
     steps:
@@ -31,31 +31,52 @@ jobs:
           echo "ANDROID_NDK_ROOT set to $ANDROID_NDK_ROOT"
           echo "Updated PATH: $PATH"
 
-      # Step 4: Configure PJSIP for Android
-      - name: Configure PJSIP for Android
+      # Step 4: Clean previous build files
+      - name: Clean previous build
         run: |
-          cd /home/runner/work/pjproject/pjproject # Navigate to the PJSIP directory
-          ./configure-android # Run the configuration script
+          cd /home/runner/work/pjproject/pjproject
+          make clean
+          cd pjsip-apps/src/pjsua/android/jni
+          make clean
+          cd /home/runner/work/pjproject/pjproject/pjsip-apps/src/swig
+          make clean
 
-      # Step 5: Build PJSIP
-      - name: Build PJSIP
+      # Step 5: Build for arm64-v8a architecture
+      - name: Build PJSIP for arm64-v8a
         run: |
-          cd /home/runner/work/pjproject/pjproject # Ensure we're in the correct directory
-          make dep && make clean && make # Run make commands to build PJSIP
+          cd /home/runner/work/pjproject/pjproject
+          TARGET_ABI=arm64-v8a ./configure-android --use-ndk-cflags
+          make dep && make clean && make
 
-       # Step 6: Upload the compiled libraries as artifacts
-      - name: Upload compiled .so libraries as artifacts
+      # Step 6: Build for armeabi-v7a architecture
+      - name: Build PJSIP for armeabi-v7a
         run: |
-          # Create an output directory for .so files
-          mkdir -p /home/runner/work/pjproject/pjproject/libs/armeabi-v7a
-          mkdir -p /home/runner/work/pjproject/pjproject/libs/arm64-v8a
+          cd /home/runner/work/pjproject/pjproject
+          TARGET_ABI=armeabi-v7a ./configure-android --use-ndk-cflags
+          make dep && make clean && make
 
-          # Copy the generated .so files into the output directory
-          cp /home/runner/work/pjproject/pjproject/libs/armeabi-v7a/*.so /home/runner/work/pjproject/pjproject/libs/armeabi-v7a/
-          cp /home/runner/work/pjproject/pjproject/libs/arm64-v8a/*.so /home/runner/work/pjproject/pjproject/libs/arm64-v8a/
+      # Step 7: Build for x86 architecture
+      - name: Build PJSIP for x86
+        run: |
+          cd /home/runner/work/pjproject/pjproject
+          TARGET_ABI=x86 ./configure-android --use-ndk-cflags
+          make dep && make clean && make
 
-      - name: Upload .so files as GitHub artifacts
+      # Step 8: Upload compiled libraries as artifacts
+      - name: Upload arm64-v8a libraries as artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: pjsip-android-so-files
-          path: /home/runner/work/pjproject/pjproject/libs
+          name: pjsip-arm64-v8a-libs
+          path: /home/runner/work/pjproject/pjproject/libs/arm64-v8a
+
+      - name: Upload armeabi-v7a libraries as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: pjsip-armeabi-v7a-libs
+          path: /home/runner/work/pjproject/pjproject/libs/armeabi-v7a
+
+      - name: Upload x86 libraries as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: pjsip-x86-libs
+          path: /home/runner/work/pjproject/pjproject/libs/x86
