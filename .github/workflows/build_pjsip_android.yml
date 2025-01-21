@@ -5,7 +5,7 @@ on:
     branches:
       - main
   pull_request:
-  workflow_dispatch:
+  workflow_dispatch: # Umożliwia ręczne uruchamianie workflow
 
 jobs:
   build-pjsip:
@@ -13,36 +13,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Checkout repository (your forked branch)
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        repository: ${{ github.repository }}
-        ref: ${{ github.ref_name }}
+      # 1. Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      # Set up Android SDK and NDKM
-    - name: Set up Android NDK
-      uses: nttld/setup-ndk@v1
+      # 2. Set up Android NDK
+      - name: Set up Android NDK
+        uses: nttld/setup-ndk@v1
         with:
           ndk-version: r27c
-    - run: ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk
 
-    # 3. Install dependencies
-    - name: Install dependencies
-      run: sudo apt-get install -y build-essential python3
+      # 3. Build PJSIP using ndk-build
+      - name: Build PJSIP
+        run: |
+          export NDK_PROJECT_PATH=.
+          export APP_BUILD_SCRIPT=./Android.mk
+          export NDK_APPLICATION_MK=./Application.mk
+          ndk-build
 
-    # 4. Build PJSIP for Android
-    - name: Build PJSIP
-      env:
-        ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
-      run: |
-        cd pjproject
-        export ANDROID_NDK_ROOT=$ANDROID_NDK
-        ./configure-android
-        make dep && make
-    # 5. Upload the compiled libraries as artifacts
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: pjsip-libs
-        path: pjproject/output/lib
+      # 4. Upload the compiled libraries as artifacts
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: pjsip-libs
+          path: ./libs # Upewnij się, że wskazuje na katalog z bibliotekami wynikowymi
