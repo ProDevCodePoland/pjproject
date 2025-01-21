@@ -43,9 +43,19 @@ jobs:
           cd /home/runner/work/pjproject/pjproject # Ensure we're in the correct directory
           make dep && make clean && make # Run make commands to build PJSIP
 
-      # Step 6: Upload the compiled libraries as artifacts
-      - name: Upload artifacts
+       # Step 6: Upload the compiled libraries as artifacts
+      - name: Upload compiled .so libraries as artifacts
+        run: |
+          # Create an output directory for .so files
+          mkdir -p /home/runner/work/pjproject/pjproject/libs/armeabi-v7a
+          mkdir -p /home/runner/work/pjproject/pjproject/libs/arm64-v8a
+
+          # Copy the generated .so files into the output directory
+          cp /home/runner/work/pjproject/pjproject/libs/armeabi-v7a/*.so /home/runner/work/pjproject/pjproject/libs/armeabi-v7a/
+          cp /home/runner/work/pjproject/pjproject/libs/arm64-v8a/*.so /home/runner/work/pjproject/pjproject/libs/arm64-v8a/
+
+      - name: Upload .so files as GitHub artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: pjsip-libs
-          path: ./libs # Path to the output directory containing .so libraries
+          name: pjsip-android-so-files
+          path: /home/runner/work/pjproject/pjproject/libs
