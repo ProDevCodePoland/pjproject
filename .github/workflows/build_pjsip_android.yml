@@ -53,20 +53,8 @@ jobs:
           make dep && make clean && make
 
       # Step 7: Upload compiled libraries as artifacts
-      - name: Upload arm64-v8a libraries as artifacts
+      - name: Upload libraries as artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: pjsip-arm64-v8a-libs
-          path: /home/runner/work/pjproject/pjsip-apps/build/android/arm64-v8a/lib/*.so
-
-      - name: Upload armeabi-v7a libraries as artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: pjsip-armeabi-v7a-libs
-          path: /home/runner/work/pjproject/pjsip-apps/build/android/armeabi-v7a/lib/*.so
-
-      - name: Upload x86 libraries as artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: pjsip-x86-libs
-          path: /home/runner/work/pjproject/pjsip-apps/build/android/x86/lib/*.so
+          name: pjsip-libs
+          path: /home/runner/work/pjproject/pjsip-apps/build
