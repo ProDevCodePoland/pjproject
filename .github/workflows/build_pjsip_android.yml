@@ -31,10 +31,6 @@ jobs:
           echo "ANDROID_NDK_ROOT set to $ANDROID_NDK_ROOT"
           echo "Updated PATH: $PATH"
 
-      - name: Find .so files
-        run: |
-          find $GITHUB_WORKSPACE -name "*.so"
-
       # Step 4: Configure and Build PJSIP for arm64-v8a architecture
       - name: Configure and Build PJSIP for arm64-v8a
         run: |
@@ -56,7 +52,12 @@ jobs:
           TARGET_ABI=x86 ./configure-android --use-ndk-cflags
           make dep && make clean && make
 
-      # Step 7: Upload compiled libraries as artifacts
+      # Step 8: Print .so files directory
+      - name: Find .so files
+        run: |
+          find $GITHUB_WORKSPACE -name "*.so"
+
+      # Step 9: Upload compiled libraries as artifacts
       - name: Upload arm64-v8a libraries as artifacts
         uses: actions/upload-artifact@v3
         with:
