@@ -69,25 +69,25 @@ jobs:
               echo "Building PJSIP for $arch ..."
               PJSIP_TMP_PATH="/tmp/pjsip/$arch"
 
-              # Debug ścieżki
+              # Debug paths
               echo "Temporary path: $PJSIP_TMP_PATH"
 
-              # Prepare build directory
+              # Prepare the temporary directory
               mkdir -p "$PJSIP_TMP_PATH"
-              cp -r ${PJSIP_BASE_PATH}/* "$PJSIP_TMP_PATH"
+              rsync -av --exclude='.git' --exclude='build' ${PJSIP_BASE_PATH}/ "$PJSIP_TMP_PATH"
               cd "$PJSIP_TMP_PATH"
 
-              # Configure and build
+              # Configuration and build
               APP_PLATFORM=android-21 TARGET_ABI=$arch ./configure-android --use-ndk-cflags >>"${FINAL_BUILD_LOGS}/${arch}.log" 2>&1
               make dep >>"${FINAL_BUILD_LOGS}/${arch}.log" 2>&1
               make >>"${FINAL_BUILD_LOGS}/${arch}.log" 2>&1
 
-              # Build PJSUA2
+              # Building PJSUA2
               echo "Building PJSUA2 for $arch ..."
               cd pjsip-apps/src/swig
               make >>"${FINAL_BUILD_LOGS}/${arch}.log" 2>&1
 
-              # Copy .so libraries
+              # Copying .so libraries
               echo "Copying built libraries to final directory..."
               mkdir -p "${FINAL_BUILD_LIB}/${arch}"
               cp java/android/libs/$arch/libpjsua2.so "${FINAL_BUILD_LIB}/${arch}/" || true
