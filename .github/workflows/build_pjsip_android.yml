@@ -5,43 +5,72 @@ on:
     branches:
       - main
   pull_request:
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual triggering of the workflow
 
 jobs:
   build-pjsip:
-    name: Build PJSIP
+    name: Build PJSIP for multiple Android architectures
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Checkout repository (your forked branch)
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        repository: ${{ github.repository }}
-        ref: ${{ github.ref_name }}
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    # 2. Set up Android NDK
-    - name: Set up Android NDK
-      uses: android-actions/setup-ndk@v2
-      with:
-        ndk-version: r25b 
+      # Step 2: Set up Android NDK
+      - name: Set up Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27c # Specify the NDK version (latest stable or preferred version)
 
-    # 3. Install dependencies
-    - name: Install dependencies
-      run: sudo apt-get install -y build-essential python3
+      # Step 3: Add NDK to PATH
+      - name: Add NDK to PATH
+        run: |
+          export ANDROID_NDK_ROOT=/opt/hostedtoolcache/ndk/r27c/x64
+          export PATH=$ANDROID_NDK_ROOT:$PATH
+          echo "ANDROID_NDK_ROOT set to $ANDROID_NDK_ROOT"
+          echo "Updated PATH: $PATH"
 
-    # 4. Build PJSIP for Android
-    - name: Build PJSIP
-      env:
-        ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
-      run: |
-        cd pjproject
-        export ANDROID_NDK_ROOT=$ANDROID_NDK
-        ./configure-android
-        make dep && make
-    # 5. Upload the compiled libraries as artifacts
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: pjsip-libs
-        path: pjproject/output/lib
+      # Step 4: Create config_site.h
+      - name: Create config_site.h
+        run: |
+          CONFIG_SITE_PATH=$(pwd)/pjlib/include/pj/config_site.h
+          mkdir -p $(dirname "$CONFIG_SITE_PATH")
+          cat <<EOF > "$CONFIG_SITE_PATH"
+          #define PJ_CONFIG_ANDROID 1
+          #define PJMEDIA_HAS_G7221_CODEC 0
+          #include <pj/config_site_sample.h>
+          #define PJMEDIA_HAS_VIDEO 0
+          #define PJMEDIA_AUDIO_DEV_HAS_ANDROID_JNI 0
+          #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1
+          #define PJSIP_AUTH_AUTO_SEND_NEXT 0
+          EOF
+          echo "config_site.h created at $CONFIG_SITE_PATH"
+
+      # Step 5: Configure and Build PJSIP for arm64-v8a architecture
+      - name: Configure and Build PJSIP for arm64-v8a
+        run: |
+          cd /home/runner/work/pjproject/pjproject
+          TARGET_ABI=arm64-v8a ./configure-android --use-ndk-cflags
+          make dep && make clean && make
+
+      # Step 6: Configure and Build PJSIP for armeabi-v7a architecture
+      - name: Configure and Build PJSIP for armeabi-v7a
+        run: |
+          cd /home/runner/work/pjproject/pjproject
+          TARGET_ABI=armeabi-v7a ./configure-android --use-ndk-cflags
+          make dep && make clean && make
+
+      # Step 7: Configure and Build PJSIP for x86 architecture
+      - name: Configure and Build PJSIP for x86
+        run: |
+          cd /home/runner/work/pjproject/pjproject
+          TARGET_ABI=x86 ./configure-android --use-ndk-cflags
+          make dep && make clean && make
+
+      # Step 8: Upload compiled libraries as artifacts
+      - name: Upload libraries as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: pjsip-libs
+          path: /home/runner/work/pjproject
