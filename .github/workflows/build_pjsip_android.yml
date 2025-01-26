@@ -24,7 +24,7 @@ jobs:
       - name: Set up environment variables and build folders
         run: |
           BASE_FOLDER=$(pwd)
-          PJSIP_BASE_PATH="${BASE_FOLDER}"
+          PJSIP_BASE_PATH="${BASE_FOLDER}/pjproject"
           PJSIP_TMP_PATH="/tmp/pjsip"
           CONFIG_SITE_PATH="${PJSIP_BASE_PATH}/pjlib/include/pj/config_site.h"
           FINAL_BUILD_DIR="${BASE_FOLDER}/pjsip-build"
@@ -84,7 +84,8 @@ jobs:
           ARCH="arm64-v8a"
           PJSIP_TMP_PATH="/tmp/pjsip-arm64-v8a"
           mkdir -p "$PJSIP_TMP_PATH"
-          cp -r ${PJSIP_BASE_PATH}/* "$PJSIP_TMP_PATH"
+          # Avoid copying problematic system directories
+          rsync -av --exclude=/boot --exclude=/dev --exclude=/proc --exclude=/sys ${PJSIP_BASE_PATH}/* "$PJSIP_TMP_PATH"
           cd "$PJSIP_TMP_PATH"
 
           APP_PLATFORM=android-21 TARGET_ABI=$ARCH ./configure-android --use-ndk-cflags >>"${FINAL_BUILD_LOGS}/${ARCH}.log" 2>&1
@@ -128,7 +129,8 @@ jobs:
           ARCH="armeabi-v7a"
           PJSIP_TMP_PATH="/tmp/pjsip-armeabi-v7a"
           mkdir -p "$PJSIP_TMP_PATH"
-          cp -r ${PJSIP_BASE_PATH}/* "$PJSIP_TMP_PATH"
+          # Avoid copying problematic system directories
+          rsync -av --exclude=/boot --exclude=/dev --exclude=/proc --exclude=/sys ${PJSIP_BASE_PATH}/* "$PJSIP_TMP_PATH"
           cd "$PJSIP_TMP_PATH"
 
           APP_PLATFORM=android-21 TARGET_ABI=$ARCH ./configure-android --use-ndk-cflags >>"${FINAL_BUILD_LOGS}/${ARCH}.log" 2>&1
@@ -172,7 +174,8 @@ jobs:
           ARCH="x86"
           PJSIP_TMP_PATH="/tmp/pjsip-x86"
           mkdir -p "$PJSIP_TMP_PATH"
-          cp -r ${PJSIP_BASE_PATH}/* "$PJSIP_TMP_PATH"
+          # Avoid copying problematic system directories
+          rsync -av --exclude=/boot --exclude=/dev --exclude=/proc --exclude=/sys ${PJSIP_BASE_PATH}/* "$PJSIP_TMP_PATH"
           cd "$PJSIP_TMP_PATH"
 
           APP_PLATFORM=android-21 TARGET_ABI=$ARCH ./configure-android --use-ndk-cflags >>"${FINAL_BUILD_LOGS}/${ARCH}.log" 2>&1
