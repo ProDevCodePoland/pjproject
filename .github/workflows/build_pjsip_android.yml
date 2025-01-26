@@ -31,12 +31,11 @@ jobs:
           echo "ANDROID_NDK_ROOT set to $ANDROID_NDK_ROOT"
           echo "Updated PATH: $PATH"
 
-      # Step 4: Set up environment variables and build folder
-      - name: Set up environment variables and build folders
+      # Step 4: Set up environment variables and create config_site.h
+      - name: Set up environment variables and create config_site.h
         run: |
           BASE_FOLDER=$(pwd)
-          PJSIP_BASE_PATH="${BASE_FOLDER}"
-          PJSIP_TMP_PATH="/tmp/pjsip"
+          PJSIP_BASE_PATH="${BASE_FOLDER}/pjproject"
           CONFIG_SITE_PATH="${PJSIP_BASE_PATH}/pjlib/include/pj/config_site.h"
           FINAL_BUILD_DIR="${BASE_FOLDER}/pjsip-build"
           FINAL_BUILD_LIB="${FINAL_BUILD_DIR}/lib"
@@ -51,6 +50,7 @@ jobs:
           mkdir -p "${FINAL_BUILD_LOGS}"
 
           # Create config_site.h
+          mkdir -p $(dirname "$CONFIG_SITE_PATH")
           cat <<EOF > "$CONFIG_SITE_PATH"
           #define PJ_CONFIG_ANDROID 1
           #define PJMEDIA_HAS_G7221_CODEC 0
@@ -61,35 +61,45 @@ jobs:
           #define PJSIP_AUTH_AUTO_SEND_NEXT 0
           EOF
 
-      # Step 5: Build PJSIP for each architecture
+      # Step 5: Build PJSIP for multiple architectures
       - name: Build PJSIP for architectures
         run: |
           ARCHS=("arm64-v8a" "armeabi-v7a" "x86")
-          BASE_FOLDER=$(pwd)
-          FINAL_BUILD_LIB="${BASE_FOLDER}/pjsip-build/lib"
-          mkdir -p "$FINAL_BUILD_LIB"
-
           for arch in "${ARCHS[@]}"; do
               echo "Building PJSIP for $arch ..."
               PJSIP_TMP_PATH="/tmp/pjsip/$arch"
-              
+
               # Debug ścieżki
               echo "Temporary path: $PJSIP_TMP_PATH"
 
+              # Prepare build directory
               mkdir -p "$PJSIP_TMP_PATH"
               cp -r ${PJSIP_BASE_PATH}/* "$PJSIP_TMP_PATH"
               cd "$PJSIP_TMP_PATH"
 
+              # Configure and build
               APP_PLATFORM=android-21 TARGET_ABI=$arch ./configure-android --use-ndk-cflags >>"${FINAL_BUILD_LOGS}/${arch}.log" 2>&1
               make dep >>"${FINAL_BUILD_LOGS}/${arch}.log" 2>&1
               make >>"${FINAL_BUILD_LOGS}/${arch}.log" 2>&1
 
+              # Build PJSUA2
+              echo "Building PJSUA2 for $arch ..."
+              cd pjsip-apps/src/swig
+              make >>"${FINAL_BUILD_LOGS}/${arch}.log" 2>&1
+
+              # Copy .so libraries
               echo "Copying built libraries to final directory..."
               mkdir -p "${FINAL_BUILD_LIB}/${arch}"
-              cp pjsip-apps/src/swig/java/android/libs/$arch/libpjsua2.so "${FINAL_BUILD_LIB}/${arch}/" || true
+              cp java/android/libs/$arch/libpjsua2.so "${FINAL_BUILD_LIB}/${arch}/" || true
           done
 
-      # Step 6: Upload compiled libraries as artifacts
+      # Step 6: Verify built files
+      - name: Verify built files
+        run: |
+          echo "Verifying generated libraries..."
+          find ${FINAL_BUILD_LIB} -name "*.so" || echo "No .so files found!"
+
+      # Step 7: Upload compiled libraries as artifacts
       - name: Upload libraries as artifacts
         uses: actions/upload-artifact@v3
         with:
