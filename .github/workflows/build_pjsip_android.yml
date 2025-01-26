@@ -31,30 +31,59 @@ jobs:
           echo "ANDROID_NDK_ROOT set to $ANDROID_NDK_ROOT"
           echo "Updated PATH: $PATH"
 
-      # Step 4: Configure and Build PJSIP for arm64-v8a architecture
-      - name: Configure and Build PJSIP for arm64-v8a
+      # Step 4: Set up environment variables and build folder
+      - name: Set up environment variables and build folders
         run: |
-          cd /home/runner/work/pjproject/pjproject
-          TARGET_ABI=arm64-v8a ./configure-android --use-ndk-cflags
-          make dep && make clean && make
+          BASE_FOLDER=$(pwd)
+          PJSIP_BASE_PATH="${BASE_FOLDER}/pjproject"
+          PJSIP_TMP_PATH="/tmp/pjsip"
+          CONFIG_SITE_PATH="${PJSIP_BASE_PATH}/pjlib/include/pj/config_site.h"
+          FINAL_BUILD_DIR="${BASE_FOLDER}/pjsip-build"
+          FINAL_BUILD_LIB="${FINAL_BUILD_DIR}/lib"
+          FINAL_BUILD_LOGS="${FINAL_BUILD_DIR}/logs"
 
-      # Step 5: Configure and Build PJSIP for armeabi-v7a architecture
-      - name: Configure and Build PJSIP for armeabi-v7a
+          export ANDROID_NDK_ROOT=/opt/hostedtoolcache/ndk/r27c/x64
+          export PATH=$ANDROID_NDK_ROOT:$PATH
+
+          # Clear and set up build directories
+          rm -rf "${FINAL_BUILD_DIR}"
+          mkdir -p "${FINAL_BUILD_LIB}"
+          mkdir -p "${FINAL_BUILD_LOGS}"
+
+          # Create config_site.h
+          cat <<EOF > "$CONFIG_SITE_PATH"
+          #define PJ_CONFIG_ANDROID 1
+          #define PJMEDIA_HAS_G7221_CODEC 0
+          #include <pj/config_site_sample.h>
+          #define PJMEDIA_HAS_VIDEO 0
+          #define PJMEDIA_AUDIO_DEV_HAS_ANDROID_JNI 0
+          #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1
+          #define PJSIP_AUTH_AUTO_SEND_NEXT 0
+          EOF
+
+      # Step 5: Build PJSIP for each architecture
+      - name: Build PJSIP for architectures
         run: |
-          cd /home/runner/work/pjproject/pjproject
-          TARGET_ABI=armeabi-v7a ./configure-android --use-ndk-cflags
-          make dep && make clean && make
+          ARCHS=("arm64-v8a" "armeabi-v7a" "x86")
+          for arch in "${ARCHS[@]}"; do
+              echo "Building PJSIP for $arch ..."
+              rm -rf "${PJSIP_TMP_PATH}"
+              mkdir -p "${PJSIP_TMP_PATH}"
+              cp -r ${PJSIP_BASE_PATH}/* "${PJSIP_TMP_PATH}"
+              cd "${PJSIP_TMP_PATH}"
 
-      # Step 6: Configure and Build PJSIP for x86 architecture
-      - name: Configure and Build PJSIP for x86
-        run: |
-          cd /home/runner/work/pjproject/pjproject
-          TARGET_ABI=x86 ./configure-android --use-ndk-cflags
-          make dep && make clean && make
+              APP_PLATFORM=android-21 TARGET_ABI=$arch ./configure-android --use-ndk-cflags >>"${FINAL_BUILD_LOGS}/${arch}.log" 2>&1
+              make dep >>"${FINAL_BUILD_LOGS}/${arch}.log" 2>&1
+              make >>"${FINAL_BUILD_LOGS}/${arch}.log" 2>&1
 
-      # Step 7: Upload compiled libraries as artifacts
+              echo "Copying .so files to final directory for $arch ..."
+              mkdir -p "${FINAL_BUILD_LIB}/${arch}"
+              cp pjsip-apps/src/swig/java/android/libs/$arch/libpjsua2.so "${FINAL_BUILD_LIB}/${arch}/" || true
+          done
+
+      # Step 6: Upload compiled libraries as artifacts
       - name: Upload libraries as artifacts
         uses: actions/upload-artifact@v3
         with:
           name: pjsip-libs
-          path: /home/runner/work/pjproject
+          path: pjsip-build
