@@ -35,7 +35,7 @@ jobs:
       - name: Set up environment variables and build folders
         run: |
           BASE_FOLDER=$(pwd)
-          PJSIP_BASE_PATH="${BASE_FOLDER}/pjproject"
+          PJSIP_BASE_PATH="${BASE_FOLDER}"
           PJSIP_TMP_PATH="/tmp/pjsip"
           CONFIG_SITE_PATH="${PJSIP_BASE_PATH}/pjlib/include/pj/config_site.h"
           FINAL_BUILD_DIR="${BASE_FOLDER}/pjsip-build"
