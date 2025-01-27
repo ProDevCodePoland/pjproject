@@ -73,6 +73,12 @@ jobs:
           echo "Listing contents of the base folder:"
           ls -R $(pwd)
 
+      # Step 5: Configure pjproject
+      - name: Configure pjproject
+        run: |
+          cd $(pwd)/pjproject
+          ./configure-android --use-ndk-cflags
+
       # Step 8: Build PJSUA2 for arm64-v8a architecture
       - name: Build PJSUA2 for arm64-v8a
         run: |
