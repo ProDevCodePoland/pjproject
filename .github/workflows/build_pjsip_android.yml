@@ -41,7 +41,7 @@ jobs:
           sudo apt-get install -y build-essential cmake libtool pkg-config
 
       # Step 5: Set up environment variables and build folders
-      - name: Set up environment variables and build folders
+   #   - name: Set up environment variables and build folders
         # run: |
         #   BASE_FOLDER=$(pwd)
         #   PJSIP_BASE_PATH="${BASE_FOLDER}/pjproject
