@@ -41,21 +41,21 @@ jobs:
       # Step 5: Configure and Build PJSUA2 for arm64-v8a architecture
       - name: Configure and Build PJSUA2 for arm64-v8a
         run: |
-          cd /home/runner/work/pjproject/pjproject
+          cd /home/runner/work/pjproject
           cd pjsip-apps/src/swig
           TARGET_ABI=arm64-v8a make
           
       # Step 6: Configure and Build PJSUA2 for armeabi-v7a architecture
       - name: Configure and Build PJSUA2 for armeabi-v7a
         run: |
-          cd /home/runner/work/pjproject/pjproject
+          cd /home/runner/work/pjproject
           cd pjsip-apps/src/swig
           TARGET_ABI=armeabi-v7a make
 
       # Step 7: Configure and Build PJSUA2 for x86 architecture
       - name: Configure and Build PJSUA2 for x86
         run: |
-          cd /home/runner/work/pjproject/pjproject
+          cd /home/runner/work/pjproject
           cd pjsip-apps/src/swig
           TARGET_ABI=x86 make
 
