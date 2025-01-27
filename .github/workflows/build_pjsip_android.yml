@@ -71,14 +71,11 @@ jobs:
           #define PJSIP_AUTH_AUTO_SEND_NEXT 1
           EOF
 
-      # Step 6: Use cmake for PJSUA2 configuration if configure is missing
-      - name: Configure PJSUA2 with CMake
+      # Step 6: Build PJSUA2 using SWIG in the swig directory
+      - name: Build PJSUA2 using SWIG
         run: |
-          cd ${PJSIP_BASE_PATH}  # Correct path to the pjproject directory
-          mkdir -p build
-          cd build
-          cmake .. -DCMAKE_TOOLCHAIN_FILE=${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_NATIVE_API_LEVEL=21
-          cmake --build .
+          cd ${PJSIP_BASE_PATH}/pjsip-apps/src/swig
+          make  # Run make in the swig directory
 
       # Step 7: Build PJSUA2 for arm64-v8a architecture
       - name: Build PJSUA2 for arm64-v8a
