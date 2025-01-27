@@ -71,11 +71,12 @@ jobs:
           #define PJSIP_AUTH_AUTO_SEND_NEXT 1
           EOF
 
-      # Step 6: Build PJSUA2 using SWIG in the swig directory
-      - name: Build PJSUA2 using SWIG
+      # Step 6: Verify the directory structure to ensure the correct path
+      - name: Verify the directory structure
         run: |
-          cd ${PJSIP_BASE_PATH}/pjsip-apps/src/swig
-          make  # Run make in the swig directory
+          echo "Current working directory: $(pwd)"
+          echo "Listing contents of the current directory:"
+          ls -R
 
       # Step 7: Build PJSUA2 for arm64-v8a architecture
       - name: Build PJSUA2 for arm64-v8a
@@ -106,7 +107,7 @@ jobs:
           cp ${PJSIP_BASE_PATH}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so ${PJSIP_BASE_PATH}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/armeabi-v7a/
           cp ${PJSIP_BASE_PATH}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so ${PJSIP_BASE_PATH}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86/
 
-      # Step 11: Upload compiled libraries as artifacts
+      # Step 12: Upload compiled libraries as artifacts
       - name: Upload libraries as artifacts
         uses: actions/upload-artifact@v3
         with:
