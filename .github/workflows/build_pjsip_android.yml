@@ -13,9 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
-      - name: Checkout repository
+      # Step 1: Checkout the repository with submodules (if needed)
+      - name: Checkout repository with submodules
         uses: actions/checkout@v3
+        with:
+          submodules: true  # Ensures submodules are checked out if required
 
       # Step 2: Set up Android NDK
       - name: Set up Android NDK
@@ -31,51 +33,88 @@ jobs:
           echo "ANDROID_NDK_ROOT set to $ANDROID_NDK_ROOT"
           echo "Updated PATH: $PATH"
 
-      # Step 4: Install SWIG and dependencies for pjsua2
+      # Step 4: Install SWIG and dependencies
       - name: Install SWIG and dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y swig
           sudo apt-get install -y build-essential cmake libtool pkg-config
 
-      # Step 5: Configure and Build PJSUA2 for arm64-v8a architecture
-      - name: Configure and Build PJSUA2 for arm64-v8a
+      # Step 5: Set up environment variables and build folders
+      - name: Set up environment variables and build folders
         run: |
-          cd /home/runner/work/pjproject
-          cd pjsip-apps/src/swig
+          BASE_FOLDER=$(pwd)
+          PJSIP_BASE_PATH="${BASE_FOLDER}/pjproject"  # Correct path to pjproject directory
+          PJSIP_TMP_PATH="/tmp/pjsip"
+          CONFIG_SITE_PATH="${PJSIP_BASE_PATH}/pjlib/include/pj/config_site.h"
+          FINAL_BUILD_DIR="${BASE_FOLDER}/pjsip-build"
+          FINAL_BUILD_LIB="${FINAL_BUILD_DIR}/lib"
+          FINAL_BUILD_LOGS="${FINAL_BUILD_DIR}/logs"
+
+          export ANDROID_NDK_ROOT=/opt/hostedtoolcache/ndk/r27c/x64
+          export PATH=$ANDROID_NDK_ROOT:$PATH
+
+          # Clear and set up build directories
+          rm -rf "${FINAL_BUILD_DIR}"
+          mkdir -p "${FINAL_BUILD_LIB}"
+          mkdir -p "${FINAL_BUILD_LOGS}"
+
+          # Create config_site.h
+          mkdir -p "$(dirname "$CONFIG_SITE_PATH")"  # Ensure the directory exists
+          cat <<EOF > "$CONFIG_SITE_PATH"
+          #define PJ_CONFIG_ANDROID 1
+          #define PJMEDIA_HAS_G7221_CODEC 1
+          #include <pj/config_site_sample.h>
+          #define PJMEDIA_HAS_VIDEO 0
+          #define PJMEDIA_AUDIO_DEV_HAS_ANDROID_JNI 1
+          #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1
+          #define PJSIP_AUTH_AUTO_SEND_NEXT 1
+          EOF
+
+      # Step 6: Use cmake for PJSUA2 configuration if configure is missing
+      - name: Configure PJSUA2 with CMake
+        run: |
+          cd ${PJSIP_BASE_PATH}  # Correct path to the pjproject directory
+          mkdir -p build
+          cd build
+          cmake .. -DCMAKE_TOOLCHAIN_FILE=${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_NATIVE_API_LEVEL=21
+          cmake --build .
+
+      # Step 7: Build PJSUA2 for arm64-v8a architecture
+      - name: Build PJSUA2 for arm64-v8a
+        run: |
+          cd ${PJSIP_BASE_PATH}/pjsip-apps/src/swig
           TARGET_ABI=arm64-v8a make
-          
-      # Step 6: Configure and Build PJSUA2 for armeabi-v7a architecture
-      - name: Configure and Build PJSUA2 for armeabi-v7a
+
+      # Step 8: Build PJSUA2 for armeabi-v7a architecture
+      - name: Build PJSUA2 for armeabi-v7a
         run: |
-          cd /home/runner/work/pjproject
-          cd pjsip-apps/src/swig
+          cd ${PJSIP_BASE_PATH}/pjsip-apps/src/swig
           TARGET_ABI=armeabi-v7a make
 
-      # Step 7: Configure and Build PJSUA2 for x86 architecture
-      - name: Configure and Build PJSUA2 for x86
+      # Step 9: Build PJSUA2 for x86 architecture
+      - name: Build PJSUA2 for x86
         run: |
-          cd /home/runner/work/pjproject
-          cd pjsip-apps/src/swig
+          cd ${PJSIP_BASE_PATH}/pjsip-apps/src/swig
           TARGET_ABI=x86 make
 
-      # Step 8: Verify and move the compiled libraries (e.g., libpjsua2.so) to appropriate locations
+      # Step 10: Verify and move compiled libraries
       - name: Verify and move compiled libraries
         run: |
-          if [ ! -f "/home/runner/work/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so" ]; then
+          if [ ! -f "${PJSIP_BASE_PATH}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so" ]; then
             echo "Native library libpjsua2.so not found!" 
             exit 1
           fi
           # Optional: Move libraries if necessary for other ABIs
-          cp /home/runner/work/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so /home/runner/work/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/armeabi-v7a/
-          cp /home/runner/work/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so /home/runner/work/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86/
+          cp ${PJSIP_BASE_PATH}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so ${PJSIP_BASE_PATH}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/armeabi-v7a/
+          cp ${PJSIP_BASE_PATH}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so ${PJSIP_BASE_PATH}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86/
 
-      # Step 9: Upload compiled libraries as artifacts
+      # Step 11: Upload compiled libraries as artifacts
       - name: Upload libraries as artifacts
         uses: actions/upload-artifact@v3
         with:
           name: pjsua2-libs
           path: |
-            /home/runner/work/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so
-            /home/runner/work/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/armeabi-v7a/libpjsua2.so
-            /home/runner/work/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86/libpjsua2.so
+            ${PJSIP_BASE_PATH}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so
+            ${PJSIP_BASE_PATH}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/armeabi-v7a/libpjsua2.so
+            ${PJSIP_BASE_PATH}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86/libpjsua2.so
