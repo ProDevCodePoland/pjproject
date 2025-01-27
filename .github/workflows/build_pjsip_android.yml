@@ -42,34 +42,34 @@ jobs:
 
       # Step 5: Set up environment variables and build folders
       - name: Set up environment variables and build folders
-        run: |
-          BASE_FOLDER=$(pwd)
-          PJSIP_BASE_PATH="${BASE_FOLDER}/pjproject
-          PJSIP_TMP_PATH="/tmp/pjsip"
-          CONFIG_SITE_PATH="${PJSIP_BASE_PATH}/pjlib/include/pj/config_site.h"
-          FINAL_BUILD_DIR="${BASE_FOLDER}/pjsip-build"
-          FINAL_BUILD_LIB="${FINAL_BUILD_DIR}/lib"
-          FINAL_BUILD_LOGS="${FINAL_BUILD_DIR}/logs"
+        # run: |
+        #   BASE_FOLDER=$(pwd)
+        #   PJSIP_BASE_PATH="${BASE_FOLDER}/pjproject
+        #   PJSIP_TMP_PATH="/tmp/pjsip"
+        #   CONFIG_SITE_PATH="${PJSIP_BASE_PATH}/pjlib/include/pj/config_site.h"
+        #   FINAL_BUILD_DIR="${BASE_FOLDER}/pjsip-build"
+        #   FINAL_BUILD_LIB="${FINAL_BUILD_DIR}/lib"
+        #   FINAL_BUILD_LOGS="${FINAL_BUILD_DIR}/logs"
 
-          export ANDROID_NDK_ROOT=/opt/hostedtoolcache/ndk/r27c/x64
-          export PATH=$ANDROID_NDK_ROOT:$PATH
+        #   export ANDROID_NDK_ROOT=/opt/hostedtoolcache/ndk/r27c/x64
+        #   export PATH=$ANDROID_NDK_ROOT:$PATH
 
-          # Clear and set up build directories
-          rm -rf "${FINAL_BUILD_DIR}"
-          mkdir -p "${FINAL_BUILD_LIB}"
-          mkdir -p "${FINAL_BUILD_LOGS}"
+        #   # Clear and set up build directories
+        #   rm -rf "${FINAL_BUILD_DIR}"
+        #   mkdir -p "${FINAL_BUILD_LIB}"
+        #   mkdir -p "${FINAL_BUILD_LOGS}"
 
-          # Create config_site.h
-          mkdir -p "$(dirname "$CONFIG_SITE_PATH")"  # Ensure the directory exists
-          cat <<EOF > "$CONFIG_SITE_PATH"
-          #define PJ_CONFIG_ANDROID 1
-          #define PJMEDIA_HAS_G7221_CODEC 1
-          #include <pj/config_site_sample.h>
-          #define PJMEDIA_HAS_VIDEO 0
-          #define PJMEDIA_AUDIO_DEV_HAS_ANDROID_JNI 1
-          #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1
-          #define PJSIP_AUTH_AUTO_SEND_NEXT 1
-          EOF
+        #   # Create config_site.h
+        #   mkdir -p "$(dirname "$CONFIG_SITE_PATH")"  # Ensure the directory exists
+        #   cat <<EOF > "$CONFIG_SITE_PATH"
+        #   #define PJ_CONFIG_ANDROID 1
+        #   #define PJMEDIA_HAS_G7221_CODEC 1
+        #   #include <pj/config_site_sample.h>
+        #   #define PJMEDIA_HAS_VIDEO 0
+        #   #define PJMEDIA_AUDIO_DEV_HAS_ANDROID_JNI 1
+        #   #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1
+        #   #define PJSIP_AUTH_AUTO_SEND_NEXT 1
+        #   EOF
 
       # Step 6: Verify the directory structure to ensure the correct path
       - name: Verify the directory structure
