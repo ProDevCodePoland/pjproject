@@ -70,46 +70,47 @@ jobs:
       - name: Verify the directory structure
         run: |
           echo "Current working directory: $(pwd)"
-          echo "Listing contents of ${BASE_FOLDER}:"
-          ls -R "${BASE_FOLDER}"
+          echo "Listing contents of the base folder:"
+          ls -R $(pwd)
 
       # Step 7: Build PJSUA2 using SWIG for Android
       - name: Build PJSUA2 using SWIG for Android
         run: |
-          cd "${BASE_FOLDER}/pjproject/pjsip-apps/src/swig/android"
+          cd $(pwd)/pjproject/pjsip-apps/src/swig/android
           echo "Now in directory: $(pwd)"
           make
 
       # Step 8: Build PJSUA2 for arm64-v8a architecture
       - name: Build PJSUA2 for arm64-v8a
         run: |
-          cd "${BASE_FOLDER}/pjproject/pjsip-apps/src/swig/android"
+          cd $(pwd)/pjproject/pjsip-apps/src/swig/android
           echo "Now in directory: $(pwd)"
           TARGET_ABI=arm64-v8a make
 
       # Step 9: Build PJSUA2 for armeabi-v7a architecture
       - name: Build PJSUA2 for armeabi-v7a
         run: |
-          cd "${BASE_FOLDER}/pjproject/pjsip-apps/src/swig/android"
+          cd $(pwd)/pjproject/pjsip-apps/src/swig/android
           echo "Now in directory: $(pwd)"
           TARGET_ABI=armeabi-v7a make
 
       # Step 10: Build PJSUA2 for x86 architecture
       - name: Build PJSUA2 for x86
         run: |
-          cd "${BASE_FOLDER}/pjproject/pjsip-apps/src/swig/android"
+          cd $(pwd)/pjproject/pjsip-apps/src/swig/android
           echo "Now in directory: $(pwd)"
           TARGET_ABI=x86 make
 
       # Step 11: Verify and move compiled libraries
       - name: Verify and move compiled libraries
         run: |
-          if [ ! -f "${BASE_FOLDER}/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so" ]; then
+          cd $(pwd)/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a
+          if [ ! -f libpjsua2.so ]; then
             echo "Native library libpjsua2.so not found!" 
             exit 1
           fi
-          cp "${BASE_FOLDER}/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so" "${BASE_FOLDER}/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/armeabi-v7a/"
-          cp "${BASE_FOLDER}/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so" "${BASE_FOLDER}/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86/"
+          cp libpjsua2.so ../armeabi-v7a/
+          cp libpjsua2.so ../x86/
 
       # Step 12: Upload compiled libraries as artifacts
       - name: Upload libraries as artifacts
@@ -117,6 +118,6 @@ jobs:
         with:
           name: pjsua2-libs
           path: |
-            ${BASE_FOLDER}/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so
-            ${BASE_FOLDER}/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/armeabi-v7a/libpjsua2.so
-            ${BASE_FOLDER}/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86/libpjsua2.so
+            $(pwd)/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so
+            $(pwd)/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/armeabi-v7a/libpjsua2.so
+            $(pwd)/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86/libpjsua2.so
