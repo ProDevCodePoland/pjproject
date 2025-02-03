@@ -76,7 +76,7 @@ jobs:
       # Step 5: Configure pjproject
       - name: Configure pjproject
         run: |
-          cd $(pwd)/pjproject
+          cd $(pwd)
           ./configure-android --use-ndk-cflags
 
       # Step 8: Build PJSUA2 for arm64-v8a architecture
