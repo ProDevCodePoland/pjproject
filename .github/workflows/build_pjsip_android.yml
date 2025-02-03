@@ -46,6 +46,8 @@ jobs:
 
           CONFIG_SITE_PATH="$BASE_FOLDER/pjlib/include/pj/config_site.h"
 
+          ls -R$BASE_FOLDER
+
           # Create config_site.h
           mkdir -p "$(dirname "$CONFIG_SITE_PATH")"
           cat <<EOF > "$CONFIG_SITE_PATH"
