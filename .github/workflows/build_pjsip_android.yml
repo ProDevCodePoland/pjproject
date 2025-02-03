@@ -42,7 +42,7 @@ jobs:
       # Step 5: Set up environment variables and build folders
       - name: Set up environment variables and build folders
         run: |
-          BASE_FOLDER=$(pwd)
+          BASE_FOLDER=${{ github.workspace }}
           PJSIP_BASE_PATH="${BASE_FOLDER}/pjproject"
           CONFIG_SITE_PATH="${PJSIP_BASE_PATH}/pjlib/include/pj/config_site.h"
           FINAL_BUILD_DIR="${BASE_FOLDER}/pjsip-build"
