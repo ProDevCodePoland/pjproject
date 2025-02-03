@@ -71,8 +71,7 @@ jobs:
       # Step 7: Configure pjproject
       - name: Configure pjproject
         run: |
-          cd $BASE_FOLDER
-          ./configure-android --use-ndk-cflags
+          ${{ github.workspace }}/configure-android --use-ndk-cflags
 
       # Step 8: Build PJSUA2 for all architectures
       - name: Build PJSUA2 for multiple architectures
