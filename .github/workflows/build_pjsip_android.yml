@@ -45,7 +45,7 @@ jobs:
           echo "LIB_DIR=$BASE_FOLDER/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs" >> $GITHUB_ENV
 
           CONFIG_SITE_PATH="$BASE_FOLDER/pjlib/include/pj/config_site.h"
-          FINAL_BUILD_DIR="$BASE_FOLDER/build"
+          FINAL_BUILD_DIR="${{ github.workspace }}/build" 
 
           rm -rf "$FINAL_BUILD_DIR"
           mkdir -p "$FINAL_BUILD_DIR/lib" "$FINAL_BUILD_DIR/logs"
