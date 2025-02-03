@@ -5,7 +5,7 @@ on:
     branches:
       - main
   pull_request:
-  workflow_dispatch: # Allows manual triggering of the workflow
+  workflow_dispatch:
 
 jobs:
   build-pjsua2:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository with submodules (if needed)
+      # Step 1: Checkout repository with submodules
       - name: Checkout repository with submodules
         uses: actions/checkout@v3
         with:
@@ -28,31 +28,28 @@ jobs:
       # Step 3: Add NDK to PATH
       - name: Add NDK to PATH
         run: |
-          export ANDROID_NDK_ROOT=/opt/hostedtoolcache/ndk/r27c/x64
-          export PATH=$ANDROID_NDK_ROOT:$PATH
-          echo "ANDROID_NDK_ROOT set to $ANDROID_NDK_ROOT"
-          echo "Updated PATH: $PATH"
+          echo "ANDROID_NDK_ROOT=/opt/hostedtoolcache/ndk/r27c/x64" >> $GITHUB_ENV
+          echo "$ANDROID_NDK_ROOT" >> $GITHUB_PATH
 
-      # Step 4: Install SWIG and dependencies
+      # Step 4: Install dependencies
       - name: Install SWIG and dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y swig build-essential cmake libtool pkg-config
 
       # Step 5: Set up environment variables and build folders
-      - name: Set up environment variables and build folders
+      - name: Set up environment variables
         run: |
-          BASE_FOLDER=${{ github.workspace }}
-          PJSIP_BASE_PATH="${BASE_FOLDER}/pjproject"
-          CONFIG_SITE_PATH="${PJSIP_BASE_PATH}/pjlib/include/pj/config_site.h"
-          FINAL_BUILD_DIR="${BASE_FOLDER}/pjsip-build"
-          FINAL_BUILD_LIB="${FINAL_BUILD_DIR}/lib"
-          FINAL_BUILD_LOGS="${FINAL_BUILD_DIR}/logs"
+          echo "BASE_FOLDER=${{ github.workspace }}/pjproject" >> $GITHUB_ENV
+          echo "SWIG_DIR=$BASE_FOLDER/pjsip-apps/src/swig" >> $GITHUB_ENV
+          echo "LIB_DIR=$BASE_FOLDER/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs" >> $GITHUB_ENV
 
-          # Clear and set up build directories
-          rm -rf "${FINAL_BUILD_DIR}"
-          mkdir -p "${FINAL_BUILD_LIB}"
-          mkdir -p "${FINAL_BUILD_LOGS}"
+          CONFIG_SITE_PATH="$BASE_FOLDER/pjlib/include/pj/config_site.h"
+          FINAL_BUILD_DIR="$BASE_FOLDER/build"
+
+          # Set up build directories
+          rm -rf "$FINAL_BUILD_DIR"
+          mkdir -p "$FINAL_BUILD_DIR/lib" "$FINAL_BUILD_DIR/logs"
 
           # Create config_site.h
           mkdir -p "$(dirname "$CONFIG_SITE_PATH")"
@@ -66,57 +63,51 @@ jobs:
           #define PJSIP_AUTH_AUTO_SEND_NEXT 1
           EOF
 
-      # Step 6: Verify the directory structure
-      - name: Verify the directory structure
+      # Step 6: Verify directory structure
+      - name: Verify directory structure
         run: |
           echo "Current working directory: $(pwd)"
-          echo "Listing contents of the base folder:"
           ls -R $(pwd)
 
-      # Step 5: Configure pjproject
+      # Step 7: Configure pjproject
       - name: Configure pjproject
         run: |
-          cd $(pwd)
+          cd $BASE_FOLDER
           ./configure-android --use-ndk-cflags
 
-      # Step 8: Build PJSUA2 for arm64-v8a architecture
-      - name: Build PJSUA2 for arm64-v8a
+      # Step 8: Build PJSUA2 for all architectures
+      - name: Build PJSUA2 for multiple architectures
         run: |
-          cd $BASE_FOLDER/pjsip-apps/src/swig
+          cd $SWIG_DIR
           echo "Now in directory: $(pwd)"
-          TARGET_ABI=arm64-v8a make
+          
+          for ABI in arm64-v8a armeabi-v7a x86; do
+            echo "Building for $ABI..."
+            TARGET_ABI=$ABI make
+          done
 
-      # Step 9: Build PJSUA2 for armeabi-v7a architecture
-      - name: Build PJSUA2 for armeabi-v7a
-        run: |
-          cd $BASE_FOLDER/pjsip-apps/src/swig
-          echo "Now in directory: $(pwd)"
-          TARGET_ABI=armeabi-v7a make
-
-      # Step 10: Build PJSUA2 for x86 architecture
-      - name: Build PJSUA2 for x86
-        run: |
-          cd $BASE_FOLDER/pjsip-apps/src/swig
-          echo "Now in directory: $(pwd)"
-          TARGET_ABI=x86 make
-
-      # Step 11: Verify and move compiled libraries
+      # Step 9: Verify and move compiled libraries
       - name: Verify and move compiled libraries
         run: |
-          cd $BASE_FOLDER/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a
-          if [ ! -f libpjsua2.so ]; then
-            echo "Native library libpjsua2.so not found!" 
-            exit 1
-          fi
-          cp libpjsua2.so ../armeabi-v7a/
-          cp libpjsua2.so ../x86/
+          mkdir -p $LIB_DIR
 
-      # Step 12: Upload compiled libraries as artifacts
+          for ABI in arm64-v8a armeabi-v7a x86; do
+            TARGET_LIB="$LIB_DIR/$ABI/libpjsua2.so"
+            
+            if [ ! -f "$TARGET_LIB" ]; then
+              echo "❌ Native library libpjsua2.so not found for $ABI!"
+              exit 1
+            fi
+            
+            echo "✅ libpjsua2.so for $ABI found!"
+          done
+
+      # Step 10: Upload compiled libraries as artifacts
       - name: Upload libraries as artifacts
         uses: actions/upload-artifact@v4
         with:
           name: pjsua2-libs
           path: |
-            $BASE_FOLDER/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so
-            $BASE_FOLDER/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/armeabi-v7a/libpjsua2.so
-            $BASE_FOLDER/pjproject/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86/libpjsua2.so
+            $LIB_DIR/arm64-v8a/libpjsua2.so
+            $LIB_DIR/armeabi-v7a/libpjsua2.so
+            $LIB_DIR/x86/libpjsua2.so
