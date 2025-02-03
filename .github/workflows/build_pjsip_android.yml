@@ -40,7 +40,7 @@ jobs:
       # Step 5: Set up environment variables and build folders
       - name: Set up environment variables
         run: |
-          echo "BASE_FOLDER=${{ github.workspace }}/pjproject" >> $GITHUB_ENV
+          echo "BASE_FOLDER=${{ github.workspace }}" >> $GITHUB_ENV
           echo "SWIG_DIR=$BASE_FOLDER/pjsip-apps/src/swig" >> $GITHUB_ENV
           echo "LIB_DIR=$BASE_FOLDER/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs" >> $GITHUB_ENV
 
