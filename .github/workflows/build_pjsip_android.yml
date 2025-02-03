@@ -45,10 +45,6 @@ jobs:
           echo "LIB_DIR=${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs" >> $GITHUB_ENV
 
           CONFIG_SITE_PATH="${{ github.workspace }}/pjlib/include/pj/config_site.h"
-          FINAL_BUILD_DIR="${{ github.workspace }}/build" 
-
-          rm -rf "$FINAL_BUILD_DIR"
-          mkdir -p "$FINAL_BUILD_DIR/lib" "$FINAL_BUILD_DIR/logs"
 
           # Create config_site.h
           mkdir -p "$(dirname "$CONFIG_SITE_PATH")"
@@ -71,7 +67,8 @@ jobs:
       # Step 7: Configure pjproject
       - name: Configure pjproject
         run: |
-          ${{ github.workspace }}/configure-android --use-ndk-cflags
+          cd ${{ github.workspace }}
+          ./configure-android --use-ndk-cflags
 
       # Step 8: Build PJSUA2 for all architectures
       - name: Build PJSUA2 for multiple architectures
