@@ -67,6 +67,9 @@ jobs:
         with:
           name: pjsua2-environment
           path: ${{ github.workspace }}
+          
+      - name: Grant execute permissions to configure script
+        run: chmod +x ${{ github.workspace }}/configure-android
 
       - name: Build for arm64-v8a
         run: |
@@ -96,6 +99,9 @@ jobs:
           name: pjsua2-environment
           path: ${{ github.workspace }}
 
+      - name: Grant execute permissions to configure script
+        run: chmod +x ${{ github.workspace }}/configure-android
+
       - name: Build for armeabi-v7a
         run: |
           cd ${{ github.workspace }}
@@ -123,6 +129,9 @@ jobs:
         with:
           name: pjsua2-environment
           path: ${{ github.workspace }}
+
+      - name: Grant execute permissions to configure script
+        run: chmod +x ${{ github.workspace }}/configure-android
 
       - name: Build for x86
         run: |
