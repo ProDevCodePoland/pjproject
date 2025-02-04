@@ -73,9 +73,8 @@ jobs:
   
       - name: Build for arm64-v8a
         run: |
-          TARGET_ABI=arm64-v8a
           cd ${{ github.workspace }}
-          ./configure-android --use-ndk-cflags
+          TARGET_ABI=arm64-v8a ./configure-android --use-ndk-cflags
           make dep && make clean && make
 
           cd ${{ github.workspace }}/pjsip-apps/src/swig
@@ -105,9 +104,8 @@ jobs:
 
       - name: Build for armeabi-v7a
         run: |
-          TARGET_ABI=armeabi-v7a
           cd ${{ github.workspace }}
-          ./configure-android --use-ndk-cflags
+          TARGET_ABI=armeabi-v7a ./configure-android --use-ndk-cflags
           make dep && make clean && make
 
           cd ${{ github.workspace }}/pjsip-apps/src/swig
@@ -137,9 +135,8 @@ jobs:
 
       - name: Build for x86
         run: |
-          TARGET_ABI=x86
           cd ${{ github.workspace }}
-          ./configure-android --use-ndk-cflags
+          TARGET_ABI=x86 ./configure-android --use-ndk-cflags
           make dep && make clean && make
 
           cd ${{ github.workspace }}/pjsip-apps/src/swig
