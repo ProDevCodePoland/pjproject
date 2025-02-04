@@ -8,37 +8,32 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Job: Build PJSUA2 for all architectures
-  build-all-architectures:
-    name: Build PJSUA2 for all Android architectures (arm64-v8a, armeabi-v7a, x86)
+  # Job: Setup environment once and reuse it
+  setup-environment:
+    name: Setup Environment
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repository with submodules
       - name: Checkout repository with submodules
         uses: actions/checkout@v3
         with:
           submodules: true
 
-      # Step 2: Set up Android NDK
       - name: Set up Android NDK
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r27c
 
-      # Step 3: Add NDK to PATH
       - name: Add NDK to PATH
         run: |
           echo "ANDROID_NDK_ROOT=/opt/hostedtoolcache/ndk/r27c/x64" >> $GITHUB_ENV
           echo "$ANDROID_NDK_ROOT" >> $GITHUB_PATH
 
-      # Step 4: Install dependencies
       - name: Install SWIG and dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y swig build-essential cmake libtool pkg-config
 
-      # Step 5: Set up environment variables
       - name: Set up environment variables
         run: |
           echo "BASE_FOLDER=${{ github.workspace }}" >> $GITHUB_ENV
@@ -54,43 +49,111 @@ jobs:
           #define PJSIP_AUTH_AUTO_SEND_NEXT 1
           EOF
 
-      # Step 6: Clean and Build for all architectures
-      - name: Clean and Build for all architectures
+      - name: Save environment as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pjsua2-environment
+          path: ${{ github.workspace }}
+
+  # Job: Build for arm64-v8a
+  build-arm64-v8a:
+    name: Build for arm64-v8a
+    runs-on: ubuntu-latest
+    needs: setup-environment
+
+    steps:
+      - name: Download environment
+        uses: actions/download-artifact@v4
+        with:
+          name: pjsua2-environment
+          path: ${{ github.workspace }}
+
+      - name: Build for arm64-v8a
         run: |
-          # Loop to build for all architectures
-          for ABI in arm64-v8a armeabi-v7a x86; do
-            echo "Building for $ABI..."
+          cd ${{ github.workspace }}
+          ./configure-android --use-ndk-cflags
+          make dep && make clean && make
 
-            # Set the target architecture
-            TARGET_ABI=$ABI
+          cd ${{ github.workspace }}/pjsip-apps/src/swig
+          make
 
-            # Configure for the target architecture
-            cd ${{ github.workspace }}
-            ./configure-android --use-ndk-cflags
+      - name: Upload arm64-v8a artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libpjsua2-arm64-v8a
+          path: ${{ github.workspace }}/pjsip-apps
+          
+  # Job: Build for armeabi-v7a
+  build-armeabi-v7a:
+    name: Build for armeabi-v7a
+    runs-on: ubuntu-latest
+    needs: setup-environment
 
-            # Compile for the target architecture
-            make dep && make clean && make
+    steps:
+      - name: Download environment
+        uses: actions/download-artifact@v4
+        with:
+          name: pjsua2-environment
+          path: ${{ github.workspace }}
 
-            # Move libpjsua2.so to appropriate directory for the target ABI
-            LIB_DIR="${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/$ABI"
-            mkdir -p $LIB_DIR
-            mv ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/libpjsua2.so $LIB_DIR/
+      - name: Build for armeabi-v7a
+        run: |
+          cd ${{ github.workspace }}
+          ./configure-android --use-ndk-cflags
+          make dep && make clean && make
 
-            # Change directory to swig folder and build with make
-            cd ${{ github.workspace }}/pjsip-apps/src/swig
-            make
+          cd ${{ github.workspace }}/pjsip-apps/src/swig
+          make
 
-            # Upload each architecture's artifact
-            echo "Uploading $ABI artifact"
-            echo "::set-output name=artifact-path-${ABI}::${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/$ABI/libpjsua2.so"
-          done
+      - name: Upload armeabi-v7a artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libpjsua2-armeabi-v7a
+          path: ${{ github.workspace }}/pjsip-apps
 
-      # Step 7: Upload all compiled libraries as artifacts
-      - name: Upload libraries as artifacts
+  # Job: Build for x86
+  build-x86:
+    name: Build for x86
+    runs-on: ubuntu-latest
+    needs: setup-environment
+
+    steps:
+      - name: Download environment
+        uses: actions/download-artifact@v4
+        with:
+          name: pjsua2-environment
+          path: ${{ github.workspace }}
+
+      - name: Build for x86
+        run: |
+          cd ${{ github.workspace }}
+          ./configure-android --use-ndk-cflags
+          make dep && make clean && make
+
+          cd ${{ github.workspace }}/pjsip-apps/src/swig
+          make
+
+      - name: Upload x86 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libpjsua2-x86
+          path: ${{ github.workspace }}/pjsip-apps
+
+  # Job: Collect all artifacts
+  upload-all-artifacts:
+    name: Upload all compiled libraries
+    runs-on: ubuntu-latest
+    needs: [build-arm64-v8a, build-armeabi-v7a, build-x86]
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Upload final artifact
         uses: actions/upload-artifact@v4
         with:
           name: pjsua2-all-architectures
           path: |
-            ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so
-            ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/armeabi-v7a/libpjsua2.so
-            ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86/libpjsua2.so
+            libpjsua2-arm64-v8a/libpjsua2.so
+            libpjsua2-armeabi-v7a/libpjsua2.so
+            libpjsua2-x86/libpjsua2.so
