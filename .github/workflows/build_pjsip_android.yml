@@ -87,7 +87,8 @@ jobs:
             # Set the target architecture
             TARGET_ABI=$ABI
 
-            # Configure for the target architecture
+            # Configure for the target architecture]
+            cd ${{ github.workspace }}
             ./configure-android --use-ndk-cflags
 
             # Compile for the target architecture
