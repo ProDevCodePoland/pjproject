@@ -64,24 +64,37 @@ jobs:
           echo "Current working directory: $(pwd)"
           ls -R $(pwd)
 
-      # Step 7: Configure pjproject
-      - name: Configure pjproject
+      # Step 7: Clean up and Build PJSUA2 for all architectures
+      - name: Clean up and Build PJSUA2 for all architectures
         run: |
-          cd ${{ github.workspace }}
-          ./configure-android --use-ndk-cflags
-
-      # Step 8: Build PJSUA2 for all architectures
-      - name: Build PJSUA2 for multiple architectures
-        run: |
-          cd $SWIG_DIR
-          echo "Now in directory: $(pwd)"
-          
+          # Loop to build for all architectures
           for ABI in arm64-v8a armeabi-v7a x86; do
+            # Cleanup all previous build files before starting fresh for each architecture
+            cd ${{ github.workspace }}
+            echo "Cleaning up previous builds"
+            make clean
+
+            # Cleanup pjsua sample app
+            cd pjsip-apps/src/pjsua/android/jni
+            make clean
+
+            # Cleanup pjsua2 sample app (SWIG)
+            cd ${{ github.workspace }}/pjsip-apps/src/swig
+            make clean
+
             echo "Building for $ABI..."
-            TARGET_ABI=$ABI make
+
+            # Set the target architecture
+            TARGET_ABI=$ABI
+
+            # Configure for the target architecture
+            ./configure-android --use-ndk-cflags
+
+            # Compile for the target architecture
+            make
           done
 
-      # Step 9: Verify and move compiled libraries
+      # Step 8: Verify and move compiled libraries
       - name: Verify and move compiled libraries
         run: |
           mkdir -p $LIB_DIR
@@ -97,7 +110,7 @@ jobs:
             echo "✅ libpjsua2.so for $ABI found!"
           done
 
-      # Step 10: Upload compiled libraries as artifacts
+      # Step 9: Upload compiled libraries as artifacts
       - name: Upload libraries as artifacts
         uses: actions/upload-artifact@v4
         with:
