@@ -41,9 +41,6 @@ jobs:
       - name: Set up environment variables
         run: |
           echo "BASE_FOLDER=${{ github.workspace }}" >> $GITHUB_ENV
-          echo "SWIG_DIR=${{ github.workspace }}/pjsip-apps/src/swig" >> $GITHUB_ENV
-          echo "LIB_DIR=${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs" >> $GITHUB_ENV
-
           CONFIG_SITE_PATH="${{ github.workspace }}/pjlib/include/pj/config_site.h"
 
           # Create config_site.h
@@ -86,6 +83,7 @@ jobs:
       # Step 8: Verify and move compiled libraries
       - name: Verify and move compiled libraries
         run: |
+          LIB_DIR=${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs"
           mkdir -p $LIB_DIR
 
           for ABI in arm64-v8a armeabi-v7a x86; do
@@ -105,6 +103,6 @@ jobs:
         with:
           name: pjsua2-libs
           path: |
-            $LIB_DIR/arm64-v8a/libpjsua2.so
-            $LIB_DIR/armeabi-v7a/libpjsua2.so
-            $LIB_DIR/x86/libpjsua2.so
+            $LIB_DIR=${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs"/arm64-v8a/libpjsua2.so
+            $LIB_DIR=${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs"/armeabi-v7a/libpjsua2.so
+            $LIB_DIR=${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs"/x86/libpjsua2.so
