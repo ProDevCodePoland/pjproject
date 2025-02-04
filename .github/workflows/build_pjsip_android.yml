@@ -84,7 +84,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: libpjsua2-arm64-v8a
-          path: ${{ github.workspace }}/pjsip-apps
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so
           
   # Job: Build for armeabi-v7a
   build-armeabi-v7a:
@@ -115,7 +115,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: libpjsua2-armeabi-v7a
-          path: ${{ github.workspace }}/pjsip-apps
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/armeabi-v7a/libpjsua2.so
 
   # Job: Build for x86
   build-x86:
@@ -146,7 +146,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: libpjsua2-x86
-          path: ${{ github.workspace }}/pjsip-apps
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86/libpjsua2.so
 
   # Job: Collect all artifacts
   upload-all-artifacts:
