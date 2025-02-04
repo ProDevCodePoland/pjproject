@@ -63,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pjsua2-arm64-v8a
-          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/main/libpjsua2.so
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a/libpjsua2.so
 
   # Job 2: Build for armeabi-v7a architecture
   build-armeabi-v7a:
@@ -118,7 +118,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pjsua2-armeabi-v7a
-          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/main/libpjsua2.so
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/armeabi-v7a/libpjsua2.so
 
   # Job 3: Build for x86 architecture
   build-x86:
@@ -173,7 +173,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pjsua2-x86
-          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/main/libpjsua2.so
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86/libpjsua2.so
 
   # Step 10: Collect all artifacts
   collect-artifacts:
@@ -181,17 +181,17 @@ jobs:
     needs: [build-arm64-v8a, build-armeabi-v7a, build-x86]  # Runs after all 3 build jobs are completed
     steps:
       - name: Download arm64-v8a artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: pjsua2-arm64-v8a
 
       - name: Download armeabi-v7a artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: pjsua2-armeabi-v7a
 
       - name: Download x86 artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: pjsua2-x86
 
