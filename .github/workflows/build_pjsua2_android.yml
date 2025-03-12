@@ -141,10 +141,39 @@ jobs:
           name: libpjsua2-x86
           path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86
 
+  build-x86_64:
+    name: Build for x86_64
+    runs-on: ubuntu-latest
+    needs: setup-environment
+
+    steps:
+      - name: Restore environment
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: pjsua2-environment-${{ github.run_id }}
+
+      - name: Grant execute permissions to all scripts
+        run: chmod -R +x ${{ github.workspace }}
+
+      - name: Build for x86_64
+        run: |
+          cd ${{ github.workspace }}
+          TARGET_ABI=x86_64 ./configure-android --use-ndk-cflags
+          make dep && make clean && make
+          cd ${{ github.workspace }}/pjsip-apps/src/swig
+          make
+
+      - name: Upload x86_64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libpjsua2-x86_64
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86_64
+
   upload-all-artifacts:
     name: Upload all compiled libraries
     runs-on: ubuntu-latest
-    needs: [build-arm64-v8a, build-armeabi-v7a, build-x86]
+    needs: [build-arm64-v8a, build-armeabi-v7a, build-x86, build-x86_64]
 
     steps:
       - name: Download all artifacts
@@ -154,7 +183,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pjsua2-all-architectures
-          path: |
-            libpjsua2-arm64-v8a/libpjsua2.so
-            libpjsua2-armeabi-v7a/libpjsua2.so
-            libpjsua2-x86/libpjsua2.so
+          path: libpjsua2-*/ 
