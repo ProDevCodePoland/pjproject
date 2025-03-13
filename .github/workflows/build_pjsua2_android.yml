@@ -112,6 +112,12 @@ jobs:
           name: libpjsua2-armeabi-v7a
           path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/armeabi-v7a
 
+      - name: Upload PJSUA2 Java files
+        uses: actions/upload-artifact@v4
+        with:
+          name: pjua2-android-module
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/java/org/pjsip/pjsua2
+
   build-x86:
     name: Build for x86
     runs-on: ubuntu-latest
