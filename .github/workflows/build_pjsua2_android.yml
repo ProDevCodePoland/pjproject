@@ -100,11 +100,10 @@ jobs:
 
       - name: Build pjsua2.jar and .aar
         run: |
-          cd ${{ github.workspace }}/pjsip-apps/src/swig
+          cd ${{ github.workspace }}/pjsip-apps/src/swig/java
           make -f Makefile
           mkdir -p ${{ github.workspace }}/artifacts/libs/
           mv java/pjsua2.jar ${{ github.workspace }}/artifacts/libs/
-          # Opcjonalne generowanie .aar
           ./gradlew assembleRelease
           mv android/pjsua2/build/outputs/aar/*.aar ${{ github.workspace }}/artifacts/libs/
 
