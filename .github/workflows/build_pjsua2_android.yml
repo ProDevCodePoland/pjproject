@@ -80,25 +80,44 @@ jobs:
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
 
-      - name: Build pjsua2.jar and .aar
-        run: |
-          cd ${{ github.workspace }}/pjsip-apps/src/swig
-          make -f Makefile
-          mkdir -p ${{ github.workspace }}/artifacts/${{ matrix.arch }}/libs/
-          mv java/pjsua2.jar ${{ github.workspace }}/artifacts/${{ matrix.arch }}/libs/
-          ./gradlew assembleRelease
-          mv android/pjsua2/build/outputs/aar/*.aar ${{ github.workspace }}/artifacts/${{ matrix.arch }}/libs/
-
       - name: Upload artifacts for ${{ matrix.arch }}
         uses: actions/upload-artifact@v4
         with:
           name: libpjsua2-${{ matrix.arch }}
-          path: ${{ github.workspace }}/artifacts/${{ matrix.arch }}/
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.arch }}
+
+  build-jar-aar:
+    name: Build pjsua2.jar and .aar
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Restore environment
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: pjsua2-environment-${{ github.run_id }}
+
+      - name: Build pjsua2.jar and .aar
+        run: |
+          cd ${{ github.workspace }}/pjsip-apps/src/swig
+          make -f Makefile
+          mkdir -p ${{ github.workspace }}/artifacts/libs/
+          mv java/pjsua2.jar ${{ github.workspace }}/artifacts/libs/
+          # Opcjonalne generowanie .aar
+          ./gradlew assembleRelease
+          mv android/pjsua2/build/outputs/aar/*.aar ${{ github.workspace }}/artifacts/libs/
+
+      - name: Upload pjsua2.jar and .aar
+        uses: actions/upload-artifact@v4
+        with:
+          name: pjsua2-libs
+          path: ${{ github.workspace }}/artifacts/libs/
 
   upload-all-artifacts:
     name: Upload all compiled libraries
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, build-jar-aar]
 
     steps:
       - name: Download all artifacts
