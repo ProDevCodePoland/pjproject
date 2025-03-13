@@ -101,11 +101,8 @@ jobs:
       - name: Build pjsua2.jar and .aar
         run: |
           cd ${{ github.workspace }}/pjsip-apps/src/swig/java
-          make -f Makefile
-          mkdir -p ${{ github.workspace }}/artifacts/libs/
-          mv java/pjsua2.jar ${{ github.workspace }}/artifacts/libs/
-          ./gradlew assembleRelease
-          mv android/pjsua2/build/outputs/aar/*.aar ${{ github.workspace }}/artifacts/libs/
+          make
+          make install
 
       - name: Upload pjsua2.jar and .aar
         uses: actions/upload-artifact@v4
