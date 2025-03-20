@@ -37,6 +37,8 @@ jobs:
       - name: Set up environment variables
         run: |
           echo "BASE_FOLDER=${{ github.workspace }}" >> $GITHUB_ENV
+          echo "C_INCLUDE_PATH=/usr/include:/usr/local/include" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=/usr/lib:/usr/local/lib" >> $GITHUB_ENV
           CONFIG_SITE_PATH="${{ github.workspace }}/pjlib/include/pj/config_site.h"
           mkdir -p "$(dirname "$CONFIG_SITE_PATH")"
           cat <<EOF > "$CONFIG_SITE_PATH"
@@ -81,7 +83,7 @@ jobs:
       - name: Build for arm64-v8a
         run: |
           cd ${{ github.workspace }}
-          TARGET_ABI=arm64-v8a ./configure-android --use-ndk-cflags --enable-tls
+          TARGET_ABI=arm64-v8a ./configure-android --use-ndk-cflags --enable-tls --with-ssl=/usr
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
@@ -110,7 +112,7 @@ jobs:
       - name: Build for armeabi-v7a
         run: |
           cd ${{ github.workspace }}
-          TARGET_ABI=armeabi-v7a ./configure-android --use-ndk-cflags --enable-tls
+          TARGET_ABI=armeabi-v7a ./configure-android --use-ndk-cflags --enable-tls --with-ssl=/usr
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
@@ -139,7 +141,7 @@ jobs:
       - name: Build for x86
         run: |
           cd ${{ github.workspace }}
-          TARGET_ABI=x86 ./configure-android --use-ndk-cflags --enable-tls
+          TARGET_ABI=x86 ./configure-android --use-ndk-cflags --enable-tls --with-ssl=/usr
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
@@ -168,7 +170,7 @@ jobs:
       - name: Build for x86_64
         run: |
           cd ${{ github.workspace }}
-          TARGET_ABI=x86_64 ./configure-android --use-ndk-cflags --enable-tls
+          TARGET_ABI=x86_64 ./configure-android --use-ndk-cflags --enable-tls --with-ssl=/usr
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
