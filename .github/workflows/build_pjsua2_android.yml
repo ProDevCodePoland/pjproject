@@ -32,7 +32,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y swig build-essential cmake libtool pkg-config
-          sudo apt-get install libssl-dev
+          sudo apt-get install -y libssl-dev libcrypto++-dev
 
       - name: Set up environment variables
         run: |
@@ -48,7 +48,7 @@ jobs:
           #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1
           #define PJSIP_AUTH_AUTO_SEND_NEXT 1
           #define PJSIP_HAS_TLS_TRANSPORT 1
-          #define PJSIP_SSL_USE_BUILTIN 1
+          #define PJSIP_SSL_USE_BUILTIN 0
           #define PJ_HAS_SSL_SOCK 1
           #define PJSUA_MAX_CALLS 10           
           EOF
