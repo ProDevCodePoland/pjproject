@@ -108,10 +108,7 @@ jobs:
           cd ${{ github.workspace }}
           TARGET_ABI=${{ matrix.architecture }} ./configure-android \
           --use-ndk-cflags \
-          --enable-tls \
-          --with-ssl=$OPENSSL_DIR \
-          --with-ssl-include=$OPENSSL_DIR/include \
-          --with-ssl-lib=$OPENSSL_DIR/lib       
+          --with-ssl=$OPENSSL_DIR/include 
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
