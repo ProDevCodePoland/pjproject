@@ -40,9 +40,9 @@ jobs:
       - name: Install OpenSLL for Android
         run: |
           # Download and extract OpenSSL
-          curl -L https://github.com/openssl/openssl/releases/download/OpenSSL_3_4_0/openssl-3.4.0.tar.gz -o openssl.tar.gz
+          curl -L https://github.com/openssl/openssl/releases/download/openssl-3.4.1/openssl-3.4.1.tar.gz -o openssl.tar.gz
           tar -xvzf openssl.tar.gz
-          cd openssl-3.4.0
+          cd openssl-3.4.1
 
           # Set up OpenSSL for Android (arm64)
           export OPENSSL_DIR=$PWD
