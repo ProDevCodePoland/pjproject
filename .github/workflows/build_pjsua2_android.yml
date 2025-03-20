@@ -52,7 +52,7 @@ jobs:
           cp lib*.a lib/
           ls lib/
           
-          export OPENSSL_DIR=${{ github.workspace }}/openssl-openssl-3.4.0/build
+          export OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.0
           export CFLAGS="-I$OPENSSL_DIR/include"
           export LDFLAGS="-L$OPENSSL_DIR/lib"
           export CPPFLAGS="-I$OPENSSL_DIR/include"
