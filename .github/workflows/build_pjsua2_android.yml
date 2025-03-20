@@ -37,6 +37,33 @@ jobs:
           echo "C_INCLUDE_PATH=/usr/include:/usr/local/include" >> $GITHUB_ENV
           echo "CPLUS_INCLUDE_PATH=/usr/include:/usr/local/include" >> $GITHUB_ENV
 
+      - name: Install OpenSLL for Android
+        run: |
+          # Download and extract OpenSSL
+          curl -L https://github.com/openssl/openssl/releases/download/OpenSSL_3_4_0/openssl-3.4.0.tar.gz -o openssl.tar.gz
+          tar -xvzf openssl.tar.gz
+          cd openssl-3.4.0
+
+          # Set up OpenSSL for Android (arm64)
+          export OPENSSL_DIR=$PWD
+          PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROID_NDK_ROOT/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin:$PATH
+
+          # Configure OpenSSL for Android
+          ./Configure android-arm64 -D__ANDROID_API__=29
+
+          # Build OpenSSL for Android
+          make
+
+          # Create lib directory and copy libraries
+          mkdir lib
+          cp lib*.a lib/
+
+          # List libraries
+          ls lib
+
+          # Save OPENSSL_DIR as environment variable
+          echo "OPENSSL_DIR=$PWD" >> $GITHUB_ENV
+
       - name: Set up environment variables
         run: |
           echo "BASE_FOLDER=${{ github.workspace }}" >> $GITHUB_ENV
