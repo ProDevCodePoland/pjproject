@@ -53,6 +53,9 @@ jobs:
           ls lib/
 
           export OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.1
+          export C_INCLUDE_PATH=$OPENSSL_DIR/include
+          export LIBRARY_PATH=$OPENSSL_DIR/lib
+          export LD_LIBRARY_PATH=$OPENSSL_DIR/lib
           # Save OPENSSL_DIR as environment variable
           echo "OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.1" >> $GITHUB_ENV
 
