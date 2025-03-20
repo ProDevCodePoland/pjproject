@@ -125,7 +125,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: openssl-${{ matrix.architecture }}
-          path: ${{ github.workspace }}/openssl-lib/${{ matrix.architecture }}
+          path: ${{ github.workspace }}
 
       - name: Build PJSUA2 for ${{ matrix.architecture }}
         run: |
