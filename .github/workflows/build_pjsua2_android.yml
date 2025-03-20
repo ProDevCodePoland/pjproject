@@ -102,7 +102,7 @@ jobs:
       - name: Build for ${{ matrix.architecture }}
         run: |
           cd ${{ github.workspace }}
-          TARGET_ABI=${{ matrix.architecture }} ./configure-android --use-ndk-cflags --with-ssl=$OPENSSL_DIR
+          TARGET_ABI=${{ matrix.architecture }} ./configure-android --use-ndk-cflags --with-ssl=$OPENSSL_DIR --with-ssl-include=$OPENSSL_DIR/include
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
