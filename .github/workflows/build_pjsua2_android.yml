@@ -33,12 +33,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y swig build-essential cmake libtool pkg-config
           sudo apt-get install -y libssl-dev libcrypto++-dev
+          sudo apt-get install -y build-essential libc6-dev gcc-multilib g++-multilib
+          echo "C_INCLUDE_PATH=/usr/include:/usr/local/include" >> $GITHUB_ENV
+          echo "CPLUS_INCLUDE_PATH=/usr/include:/usr/local/include" >> $GITHUB_ENV
 
       - name: Set up environment variables
         run: |
           echo "BASE_FOLDER=${{ github.workspace }}" >> $GITHUB_ENV
-          echo "C_INCLUDE_PATH=/usr/include:/usr/local/include" >> $GITHUB_ENV
-          echo "LIBRARY_PATH=/usr/lib:/usr/local/lib" >> $GITHUB_ENV
           CONFIG_SITE_PATH="${{ github.workspace }}/pjlib/include/pj/config_site.h"
           mkdir -p "$(dirname "$CONFIG_SITE_PATH")"
           cat <<EOF > "$CONFIG_SITE_PATH"
