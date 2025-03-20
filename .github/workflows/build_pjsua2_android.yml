@@ -40,19 +40,17 @@ jobs:
           tar -xvzf openssl.tar.gz
 
           # Set up OpenSSL for different architectures
-          for target in arm64-v8a armeabi-v7a x86 x86_64; do
-            PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROID_NDK_ROOT/toolchains/$target/prebuilt/linux-x86_64/bin:$PATH
-            ./Configure android-$target -D__ANDROID_API__=29
+          PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROID_NDK_ROOT/toolchains/$target/prebuilt/linux-x86_64/bin:$PATH
+          ./Configure android-arm64 -D__ANDROID_API__=29
 
-            # Build OpenSSL for Android
-            make
+          # Build OpenSSL for Android
+          make
 
-            # Create lib directory and copy libraries
-            cd ${{ github.workspace }}/openssl-1.1.1k
-            mkdir -p lib
-            cp lib*.a lib/
-            ls lib/
-          done
+          # Create lib directory and copy libraries
+          cd ${{ github.workspace }}/openssl-1.1.1k
+          mkdir -p lib
+          cp lib*.a lib/
+          ls lib/
 
           export OPENSSL_DIR=${{ github.workspace }}/openssl-1.1.1k
           # Save OPENSSL_DIR as environment variable
