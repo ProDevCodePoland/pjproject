@@ -46,17 +46,17 @@ jobs:
 
           # Build OpenSSL for Android
           make
-          make install
 
           # Create lib directory and copy libraries
           mkdir -p lib
           cp lib*.a lib/
           ls lib/
-
-          export OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.0
-          export C_INCLUDE_PATH=$OPENSSL_DIR/include
-          export LIBRARY_PATH=$OPENSSL_DIR/lib
-          export LD_LIBRARY_PATH=$OPENSSL_DIR/lib
+          
+          export OPENSSL_DIR=${{ github.workspace }}/openssl-openssl-3.4.0/build
+          export CFLAGS="-I$OPENSSL_DIR/include"
+          export LDFLAGS="-L$OPENSSL_DIR/lib"
+          export CPPFLAGS="-I$OPENSSL_DIR/include"
+          export PKG_CONFIG_PATH="$OPENSSL_DIR/lib/pkgconfig"
           # Save OPENSSL_DIR as environment variable
           echo "OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.0" >> $GITHUB_ENV
 
@@ -106,7 +106,12 @@ jobs:
       - name: Build for ${{ matrix.architecture }}
         run: |
           cd ${{ github.workspace }}
-          TARGET_ABI=${{ matrix.architecture }} ./configure-android --use-ndk-cflags --enable-tls --with-ssl=$OPENSSL_DIR --with-ssl-include=$OPENSSL_DIR/include
+          TARGET_ABI=${{ matrix.architecture }} ./configure-android \
+          --use-ndk-cflags \
+          --enable-tls \
+          --with-ssl=$OPENSSL_DIR \
+          --with-ssl-include=$OPENSSL_DIR/include \
+          --with-ssl-lib=$OPENSSL_DIR/lib       
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
