@@ -40,7 +40,7 @@ jobs:
           tar -xvzf openssl.tar.gz
 
           # Set up OpenSSL for different architectures
-          cd ${{ github.workspace }}/openssl-1.1.1k
+          cd ${{ github.workspace }}/openssl-OpenSSL_1_1_1k
           PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROID_NDK_ROOT/toolchains/$target/prebuilt/linux-x86_64/bin:$PATH
           ./Configure android-arm64 -D__ANDROID_API__=29
 
@@ -48,7 +48,6 @@ jobs:
           make
 
           # Create lib directory and copy libraries
-          cd ${{ github.workspace }}/openssl-1.1.1k
           mkdir -p lib
           cp lib*.a lib/
           ls lib/
