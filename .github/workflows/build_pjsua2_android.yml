@@ -46,6 +46,7 @@ jobs:
 
           # Build OpenSSL for Android
           make
+          make install
 
           # Create lib directory and copy libraries
           mkdir -p lib
