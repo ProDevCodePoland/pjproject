@@ -54,7 +54,7 @@ jobs:
 
           export OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.1
           # Save OPENSSL_DIR as environment variable
-          echo "OPENSSL_DIR=$PWD" >> $GITHUB_ENV
+          echo "OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.1" >> $GITHUB_ENV
 
       - name: Set up environment variables
         run: |
