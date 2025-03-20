@@ -1,4 +1,4 @@
-name: Build PJSUA2 for Android (TLS Enabled)
+name: Build PJSUA2 for Android
 
 on:
   push:
@@ -28,12 +28,13 @@ jobs:
           echo "ANDROID_NDK_ROOT=/opt/hostedtoolcache/ndk/r27c/x64" >> $GITHUB_ENV
           echo "$ANDROID_NDK_ROOT" >> $GITHUB_PATH
 
-      - name: Install dependencies (SWIG, OpenSSL, Crypto++)
+      - name: Install SWIG and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y swig build-essential cmake libtool pkg-config libssl-dev libcrypto++-dev
+          sudo apt-get install -y swig build-essential cmake libtool pkg-config
+          sudo apt-get install libssl-dev
 
-      - name: Set up environment variables with TLS support
+      - name: Set up environment variables
         run: |
           echo "BASE_FOLDER=${{ github.workspace }}" >> $GITHUB_ENV
           CONFIG_SITE_PATH="${{ github.workspace }}/pjlib/include/pj/config_site.h"
@@ -41,13 +42,15 @@ jobs:
           cat <<EOF > "$CONFIG_SITE_PATH"
           #define PJ_CONFIG_ANDROID 1
           #define PJMEDIA_HAS_G7221_CODEC 1
+          #include <pj/config_site_sample.h>
           #define PJMEDIA_HAS_VIDEO 0
           #define PJMEDIA_AUDIO_DEV_HAS_ANDROID_JNI 1
           #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1
           #define PJSIP_AUTH_AUTO_SEND_NEXT 1
           #define PJSIP_HAS_TLS_TRANSPORT 1
           #define PJSIP_SSL_USE_BUILTIN 1
-          #include <pj/config_site_sample.h>
+          #define PJ_HAS_SSL_SOCK 1
+          #define PJSUA_MAX_CALLS 10           
           EOF
 
       - name: Cache environment
@@ -56,13 +59,10 @@ jobs:
           path: ${{ github.workspace }}
           key: pjsua2-environment-${{ github.run_id }}
 
-  build-android:
-    name: Build for ${{ matrix.abi }}
+  build-arm64-v8a:
+    name: Build for arm64-v8a
     runs-on: ubuntu-latest
     needs: setup-environment
-    strategy:
-      matrix:
-        abi: [arm64-v8a, armeabi-v7a, x86, x86_64]
 
     steps:
       - name: Restore environment
@@ -74,24 +74,111 @@ jobs:
       - name: Grant execute permissions to all scripts
         run: chmod -R +x ${{ github.workspace }}
 
-      - name: Build for ${{ matrix.abi }} with TLS
+      - name: Build for arm64-v8a
         run: |
           cd ${{ github.workspace }}
-          TARGET_ABI=${{ matrix.abi }} ./configure-android --use-ndk-cflags --enable-tls
+          TARGET_ABI=arm64-v8a ./configure-android --use-ndk-cflags
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
 
-      - name: Upload ${{ matrix.abi }} artifact
+      - name: Upload arm64-v8a artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libpjsua2-${{ matrix.abi }}
-          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.abi }}
+          name: libpjsua2-arm64-v8a
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/arm64-v8a
+
+  build-armeabi-v7a:
+    name: Build for armeabi-v7a
+    runs-on: ubuntu-latest
+    needs: setup-environment
+
+    steps:
+      - name: Restore environment
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: pjsua2-environment-${{ github.run_id }}
+
+      - name: Grant execute permissions to all scripts
+        run: chmod -R +x ${{ github.workspace }}
+
+      - name: Build for armeabi-v7a
+        run: |
+          cd ${{ github.workspace }}
+          TARGET_ABI=armeabi-v7a ./configure-android --use-ndk-cflags
+          make dep && make clean && make
+          cd ${{ github.workspace }}/pjsip-apps/src/swig
+          make
+
+      - name: Upload armeabi-v7a artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libpjsua2-armeabi-v7a
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/armeabi-v7a
+
+  build-x86:
+    name: Build for x86
+    runs-on: ubuntu-latest
+    needs: setup-environment
+
+    steps:
+      - name: Restore environment
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: pjsua2-environment-${{ github.run_id }}
+
+      - name: Grant execute permissions to all scripts
+        run: chmod -R +x ${{ github.workspace }}
+
+      - name: Build for x86
+        run: |
+          cd ${{ github.workspace }}
+          TARGET_ABI=x86 ./configure-android --use-ndk-cflags
+          make dep && make clean && make
+          cd ${{ github.workspace }}/pjsip-apps/src/swig
+          make
+
+      - name: Upload x86 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libpjsua2-x86
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86
+
+  build-x86_64:
+    name: Build for x86_64
+    runs-on: ubuntu-latest
+    needs: setup-environment
+
+    steps:
+      - name: Restore environment
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}
+          key: pjsua2-environment-${{ github.run_id }}
+
+      - name: Grant execute permissions to all scripts
+        run: chmod -R +x ${{ github.workspace }}
+
+      - name: Build for x86_64
+        run: |
+          cd ${{ github.workspace }}
+          TARGET_ABI=x86_64 ./configure-android --use-ndk-cflags
+          make dep && make clean && make
+          cd ${{ github.workspace }}/pjsip-apps/src/swig
+          make
+
+      - name: Upload x86_64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libpjsua2-x86_64
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/x86_64
 
   upload-all-artifacts:
     name: Upload all compiled libraries
     runs-on: ubuntu-latest
-    needs: build-android
+    needs: [build-arm64-v8a, build-armeabi-v7a, build-x86, build-x86_64]
 
     steps:
       - name: Download all artifacts
@@ -101,4 +188,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pjsua2-all-architectures
-          path: libpjsua2-*/
+          path: libpjsua2-*/ 
