@@ -48,8 +48,7 @@ jobs:
           #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1
           #define PJSIP_AUTH_AUTO_SEND_NEXT 1
           #define PJSIP_HAS_TLS_TRANSPORT 1
-          #define PJSIP_SSL_USE_BUILTIN 0
-          #define PJ_HAS_SSL_SOCK 1
+          #define PJSIP_SSL_USE_BUILTIN 1
           #define PJSUA_MAX_CALLS 10           
           EOF
 
@@ -77,7 +76,7 @@ jobs:
       - name: Build for arm64-v8a
         run: |
           cd ${{ github.workspace }}
-          TARGET_ABI=arm64-v8a ./configure-android --use-ndk-cflags
+          TARGET_ABI=arm64-v8a ./configure-android --use-ndk-cflags --enable-tls
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
@@ -106,7 +105,7 @@ jobs:
       - name: Build for armeabi-v7a
         run: |
           cd ${{ github.workspace }}
-          TARGET_ABI=armeabi-v7a ./configure-android --use-ndk-cflags
+          TARGET_ABI=armeabi-v7a ./configure-android --use-ndk-cflags --enable-tls
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
@@ -135,7 +134,7 @@ jobs:
       - name: Build for x86
         run: |
           cd ${{ github.workspace }}
-          TARGET_ABI=x86 ./configure-android --use-ndk-cflags
+          TARGET_ABI=x86 ./configure-android --use-ndk-cflags --enable-tls
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
@@ -164,7 +163,7 @@ jobs:
       - name: Build for x86_64
         run: |
           cd ${{ github.workspace }}
-          TARGET_ABI=x86_64 ./configure-android --use-ndk-cflags
+          TARGET_ABI=x86_64 ./configure-android --use-ndk-cflags --enable-tls
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
