@@ -116,14 +116,14 @@ jobs:
 
           mkdir -p ${{ github.workspace }}/openssl-lib
           cp libcrypto.a libssl.a ${{ github.workspace }}/openssl-lib
-          cp -v $OPENSSL_DIR/libcrypto.so ${{ github.workspace }}/openssl-lib
-          cp -v $OPENSSL_DIR/libssl.so ${{ github.workspace }}/openssl-lib
+          cp -v ${{ github.workspace }}/openssl-3.4.0/libcrypto.so ${{ github.workspace }}/openssl-lib
+          cp -v ${{ github.workspace }}/openssl-3.4.0/libssl.so ${{ github.workspace }}/openssl-lib
 
       - name: Upload OpenSSL ${{ matrix.architecture }} libraries as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: openssl-libraries-${{ matrix.architecture }}
-          path: ${{ github.workspace }}/openssl-lib/${{ matrix.architecture }}
+          name: libpjsua2-opensll-${{ matrix.architecture }}
+          path: ${{ github.workspace }}/openssl-lib/
  
       - name: Build PJSUA2 for ${{ matrix.architecture }}
         run: |
