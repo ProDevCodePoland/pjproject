@@ -116,8 +116,8 @@ jobs:
 
           mkdir -p ${{ github.workspace }}/openssl-lib
           cp libcrypto.a libssl.a ${{ github.workspace }}/openssl-lib
-          cp -v $OPENSSL_DIR/lib/libcrypto.so ${{ github.workspace }}/openssl-lib
-          cp -v $OPENSSL_DIR/lib/libssl.so ${{ github.workspace }}/openssl-lib
+          cp -v $OPENSSL_DIR/libcrypto.so ${{ github.workspace }}/openssl-lib
+          cp -v $OPENSSL_DIR/libssl.so ${{ github.workspace }}/openssl-lib
 
       - name: Upload OpenSSL ${{ matrix.architecture }} libraries as artifact
         uses: actions/upload-artifact@v4
