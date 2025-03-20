@@ -86,10 +86,8 @@ jobs:
           export TOOLCHAIN=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64
           echo "TOOLCHAIN=$TOOLCHAIN" >> $GITHUB_ENV
           
-          # Dodaj toolchain do PATH
           echo "$TOOLCHAIN/bin" >> $GITHUB_PATH
           
-          # Ustawienia dla różnych architektur
           echo "CC_aarch64=$TOOLCHAIN/bin/aarch64-linux-android23-clang" >> $GITHUB_ENV
           echo "CC_arm=$TOOLCHAIN/bin/armv7a-linux-androideabi23-clang" >> $GITHUB_ENV
           echo "CC_x86=$TOOLCHAIN/bin/i686-linux-android23-clang" >> $GITHUB_ENV
@@ -99,7 +97,6 @@ jobs:
         run: |
           cd ${{ github.workspace }}/openssl-3.4.0
           
-          # Wybierz odpowiednią konfigurację OpenSSL dla architektury
           case "${{ matrix.architecture }}" in
             arm64-v8a)
               export CC=$CC_aarch64
@@ -117,9 +114,16 @@ jobs:
 
           make -j$(nproc)
 
-          # Skopiuj skompilowane biblioteki
-          mkdir -p ${{ github.workspace }}/openssl-lib/${{ matrix.architecture }}
-          cp libcrypto.a libssl.a ${{ github.workspace }}/openssl-lib/${{ matrix.architecture }}
+          mkdir -p ${{ github.workspace }}/openssl-lib
+          cp libcrypto.a libssl.a ${{ github.workspace }}/openssl-lib
+          cp -v $OPENSSL_DIR/lib/libcrypto.so ${{ github.workspace }}/openssl-lib
+          cp -v $OPENSSL_DIR/lib/libssl.so ${{ github.workspace }}/openssl-lib
+
+      - name: Upload OpenSSL ${{ matrix.architecture }} libraries as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openssl-libraries-${{ matrix.architecture }}
+          path: ${{ github.workspace }}/openssl-lib/${{ matrix.architecture }}
  
       - name: Build PJSUA2 for ${{ matrix.architecture }}
         run: |
