@@ -35,30 +35,53 @@ jobs:
 
       - name: Install OpenSSL for Android
         run: |
-          # Download and extract OpenSSL
+          # Pobranie i rozpakowanie OpenSSL
           curl -L https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz -o openssl.tar.gz
           tar -xvzf openssl.tar.gz
+          cd openssl-3.4.0
 
-          # Set up OpenSSL for different architectures
-          cd ${{ github.workspace }}/openssl-3.4.0
-          PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROID_NDK_ROOT/toolchains/$target/prebuilt/linux-x86_64/bin:$PATH
-          ./Configure android-arm64 -D__ANDROID_API__=29
-
-          # Build OpenSSL for Android
-          make
-
-          # Create lib directory and copy libraries
-          mkdir -p lib
-          cp lib*.a lib/
-          ls lib/
+          # Ustawienie ścieżki do NDK
+          export ANDROID_NDK_HOME=/opt/hostedtoolcache/ndk/r27c/x64
+          export TOOLCHAIN=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64
           
-          export OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.0
-          export CFLAGS="-I$OPENSSL_DIR/include"
-          export LDFLAGS="-L$OPENSSL_DIR/lib"
-          export CPPFLAGS="-I$OPENSSL_DIR/include"
-          export PKG_CONFIG_PATH="$OPENSSL_DIR/lib/pkgconfig"
-          # Save OPENSSL_DIR as environment variable
-          echo "OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.0" >> $GITHUB_ENV
+          # Definiowanie architektur
+          declare -A archs
+          archs[arm64-v8a]=aarch64-linux-android
+          archs[armeabi-v7a]=armv7a-linux-androideabi
+          archs[x86]=i686-linux-android
+          archs[x86_64]=x86_64-linux-android
+
+          # Kompilacja OpenSSL dla każdej architektury
+          for target in "${!archs[@]}"; do
+            echo "Building OpenSSL for $target..."
+            
+            # Wyczyść poprzednią kompilację
+            make clean || true
+
+            # Ustawienia specyficzne dla architektury
+            export TARGET=${archs[$target]}
+            export API_LEVEL=23
+            export CC="$TOOLCHAIN/bin/$TARGET$API_LEVEL-clang"
+            export CXX="$TOOLCHAIN/bin/$TARGET$API_LEVEL-clang++"
+            export AR="$TOOLCHAIN/bin/llvm-ar"
+            export RANLIB="$TOOLCHAIN/bin/llvm-ranlib"
+            export STRIP="$TOOLCHAIN/bin/llvm-strip"
+
+            # Konfiguracja OpenSSL dla Androida
+            ./Configure android-$target -D__ANDROID_API__=$API_LEVEL --prefix=$PWD/build/$target
+            
+            # Kompilacja OpenSSL
+            make -j$(nproc)
+            make install_sw
+
+            # Kopiowanie skompilowanych bibliotek do oddzielnych folderów
+            mkdir -p $PWD/lib/$target
+            cp -r $PWD/build/$target/lib/*.a $PWD/lib/$target/
+            cp -r $PWD/build/$target/include $PWD/lib/$target/
+          done
+
+          # Zapisanie ścieżki OpenSSL do zmiennej środowiskowej
+          echo "OPENSSL_DIR=$PWD" >> $GITHUB_ENV
 
       - name: Set up environment variables
         run: |
@@ -75,7 +98,6 @@ jobs:
           #define PJSIP_AUTH_AUTO_SEND_NEXT 1
           #define PJSIP_HAS_TLS_TRANSPORT 1
           #define PJSUA_MAX_CALLS 10     
-          #define PJSIP_HAS_TLS_TRANSPORT 1
           #define PJSIP_HAS_TLS 1
           #define PJ_HAS_SSL_SOCK 1
           EOF
@@ -87,12 +109,13 @@ jobs:
           key: pjsua2-environment-${{ github.run_id }}
 
   build-architectures:
-    name: Build for
+    name: Build for multiple architectures
     runs-on: ubuntu-latest
     needs: setup-environment
     strategy:
       matrix:
         architecture: [arm64-v8a, armeabi-v7a, x86, x86_64]
+
     steps:
       - name: Restore environment
         uses: actions/cache@v3
@@ -105,10 +128,18 @@ jobs:
 
       - name: Build for ${{ matrix.architecture }}
         run: |
+          export OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.0/lib/${{ matrix.architecture }}
+          export CFLAGS="-I$OPENSSL_DIR/include"
+          export LDFLAGS="-L$OPENSSL_DIR"
+          export CPPFLAGS="-I$OPENSSL_DIR/include"
+          export PKG_CONFIG_PATH="$OPENSSL_DIR/pkgconfig"
+
+          echo "OPENSSL_DIR=$OPENSSL_DIR" >> $GITHUB_ENV
+
           cd ${{ github.workspace }}
           TARGET_ABI=${{ matrix.architecture }} ./configure-android \
           --use-ndk-cflags \
-          --with-ssl=$OPENSSL_DIR/include 
+          --with-ssl=$OPENSSL_DIR
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
