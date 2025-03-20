@@ -36,11 +36,11 @@ jobs:
       - name: Install OpenSSL for Android
         run: |
           # Download and extract OpenSSL
-          curl -L https://github.com/openssl/openssl/releases/download/openssl-3.4.1/openssl-3.4.1.tar.gz -o openssl.tar.gz
+          curl -L https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz -o openssl.tar.gz
           tar -xvzf openssl.tar.gz
 
           # Set up OpenSSL for different architectures
-          cd ${{ github.workspace }}/openssl-3.4.1
+          cd ${{ github.workspace }}/openssl-3.4.0
           PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROID_NDK_ROOT/toolchains/$target/prebuilt/linux-x86_64/bin:$PATH
           ./Configure android-arm64 -D__ANDROID_API__=29
 
@@ -52,12 +52,12 @@ jobs:
           cp lib*.a lib/
           ls lib/
 
-          export OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.1
+          export OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.0
           export C_INCLUDE_PATH=$OPENSSL_DIR/include
           export LIBRARY_PATH=$OPENSSL_DIR/lib
           export LD_LIBRARY_PATH=$OPENSSL_DIR/lib
           # Save OPENSSL_DIR as environment variable
-          echo "OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.1" >> $GITHUB_ENV
+          echo "OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.0" >> $GITHUB_ENV
 
       - name: Set up environment variables
         run: |
@@ -105,7 +105,7 @@ jobs:
       - name: Build for ${{ matrix.architecture }}
         run: |
           cd ${{ github.workspace }}
-          TARGET_ABI=${{ matrix.architecture }} ./configure-android --use-ndk-cflags --with-ssl=$OPENSSL_DIR --with-ssl-include=$OPENSSL_DIR/include
+          TARGET_ABI=${{ matrix.architecture }} ./configure-android --use-ndk-cflags --enable-tls --with-ssl=$OPENSSL_DIR --with-ssl-include=$OPENSSL_DIR/include
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
