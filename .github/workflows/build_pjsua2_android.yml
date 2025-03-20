@@ -120,16 +120,10 @@ jobs:
           # Skopiuj skompilowane biblioteki
           mkdir -p ${{ github.workspace }}/openssl-lib/${{ matrix.architecture }}
           cp libcrypto.a libssl.a ${{ github.workspace }}/openssl-lib/${{ matrix.architecture }}
-
-      - name: Upload OpenSSL build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: openssl-${{ matrix.architecture }}
-          path: ${{ github.workspace }}
-
+ 
       - name: Build PJSUA2 for ${{ matrix.architecture }}
         run: |
-          export OPENSSL_DIR=${{ github.workspace }}/openssl-lib/${{ matrix.architecture }}
+          export OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.0
           export CFLAGS="-I$OPENSSL_DIR/include"
           export LDFLAGS="-L$OPENSSL_DIR"
           export CPPFLAGS="-I$OPENSSL_DIR/include"
@@ -138,7 +132,7 @@ jobs:
           cd ${{ github.workspace }}
           TARGET_ABI=${{ matrix.architecture }} ./configure-android \
           --use-ndk-cflags \
-          --with-ssl=$OPENSSL_DIR
+          --with-ssl=$OPENSSL_DIR/include
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
