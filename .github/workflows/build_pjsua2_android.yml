@@ -34,6 +34,8 @@ jobs:
           sudo apt-get install -y swig build-essential cmake libtool pkg-config
           sudo apt-get install -y libssl-dev libcrypto++-dev
           sudo apt-get install -y gcc-multilib
+          echo "C_INCLUDE_PATH=/usr/include:/usr/local/include" >> $GITHUB_ENV
+          echo "CPLUS_INCLUDE_PATH=/usr/include:/usr/local/include" >> $GITHUB_ENV
 
       - name: Set up environment variables
         run: |
