@@ -36,12 +36,11 @@ jobs:
       - name: Install OpenSSL for Android
         run: |
           # Download and extract OpenSSL
-          curl -L https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1k.tar.gz -o openssl.tar.gz
+          curl -L https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_3_4_1.tar.gz -o openssl.tar.gz
           tar -xvzf openssl.tar.gz
 
           # Set up OpenSSL for different architectures
-          export ANDROID_NDK_ROOT=/opt/hostedtoolcache/ndk/r27c/x64
-          cd ${{ github.workspace }}/openssl-OpenSSL_1_1_1k
+          cd ${{ github.workspace }}/openssl-OpenSSL_3_4_1
           PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROID_NDK_ROOT/toolchains/$target/prebuilt/linux-x86_64/bin:$PATH
           ./Configure android-arm64 -D__ANDROID_API__=29
 
@@ -53,7 +52,7 @@ jobs:
           cp lib*.a lib/
           ls lib/
 
-          export OPENSSL_DIR=${{ github.workspace }}/openssl-1.1.1k
+          export OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.1
           # Save OPENSSL_DIR as environment variable
           echo "OPENSSL_DIR=$PWD" >> $GITHUB_ENV
 
