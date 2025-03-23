@@ -167,7 +167,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: libpjsua2-${{ matrix.architecture }}
-          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android
 
   upload-all-artifacts:
     name: Upload all compiled libraries
