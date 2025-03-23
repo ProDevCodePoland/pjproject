@@ -127,14 +127,14 @@ jobs:
           export CPPFLAGS="-I$OPENSSL_DIR/include"
           export PKG_CONFIG_PATH="$OPENSSL_DIR/pkgconfig"
 
+          TARGET_ABI=${{ matrix.architecture }}
+          
           cd ${{ github.workspace }}
-          if [[ "${{ matrix.architecture }}" == "arm64-v8a" || "${{ matrix.architecture }}" == "armeabi-v7a" ]]; then
-            ./configure-android --use-ndk-cflags --with-ssl=$OPENSSL_DIR/include --disable-floating-point --disable-video
-          else
-            ./configure-android --use-ndk-cflags --with-ssl=$OPENSSL_DIR/include --disable-video
-          fi
-          TARGET_ABI=${{ matrix.architecture }} ./configure-android \
-          make dep && make clean && make
+           TARGET_ABI=${{ matrix.architecture }} ./configure-android \
+           --use-ndk-cflags \
+           --with-ssl=$OPENSSL_DIR/include
+           make dep && make clean && make
+
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
 
@@ -158,9 +158,3 @@ jobs:
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
-
-      - name: Upload final artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: pjsua2-all-architectures
-          path: libpjsua2-*/ 
