@@ -44,18 +44,37 @@ jobs:
           CONFIG_SITE_PATH="${{ github.workspace }}/pjlib/include/pj/config_site.h"
           mkdir -p "$(dirname "$CONFIG_SITE_PATH")"
           cat <<EOF > "$CONFIG_SITE_PATH"
-          #define PJ_CONFIG_ANDROID 1
-          #define PJMEDIA_HAS_G7221_CODEC 1
-          #include <pj/config_site_sample.h>
-          #define PJMEDIA_HAS_VIDEO 0
-          #define PJMEDIA_AUDIO_DEV_HAS_ANDROID_JNI 1
-          #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1
-          #define PJSIP_AUTH_AUTO_SEND_NEXT 1
-          #define PJSIP_HAS_TLS_TRANSPORT 1
-          #define PJSUA_MAX_CALLS 10     
-          #define PJSIP_HAS_TLS_TRANSPORT 1
-          #define PJSIP_HAS_TLS 1
-          #define PJ_HAS_SSL_SOCK 1
+          #define PJ_CONFIG_ANDROID 1               // Enable Android compilation
+          #include <pj/config_site_sample.h>        // Load default configuration as a base
+          // **Basic settings**
+          #define PJ_HAS_FLOATING_POINT 0           // Disable floating point support for better performance and smaller size
+          #define PJMEDIA_HAS_VIDEO 0               // Disable video support (can be enabled but requires additional dependencies)
+          #define PJMEDIA_AUDIO_DEV_HAS_ANDROID_JNI 1  // Use native Android audio system
+          #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1    // Enable OpenSL ES for better audio quality
+          #define PJMEDIA_HAS_G7221_CODEC 1         // Enable G.722.1 codec (you can disable it if not needed)
+          #define PJSIP_AUTH_AUTO_SEND_NEXT 1       // Auto-handle authorization
+          // **Security & TLS**
+          #define PJSIP_HAS_TLS_TRANSPORT 1         // Enable TLS for secure communication
+          #define PJSIP_HAS_TLS 1                   // Enable TLS in PJSIP
+          #define PJ_HAS_SSL_SOCK 1                 // Enable SSL socket support
+          // **Android optimization**
+          #define PJ_ANDROID 1                      // Set platform as Android
+          #define PJ_OS_HAS_CHECK_STACK 0           // Disable stack checking (less overhead)
+          #define PJ_THREAD_SET_STACK_SIZE 1        // Allow setting stack size
+          #define PJ_THREAD_DEFAULT_STACK_SIZE 8192 // Reduce default thread stack size (adjust as needed)
+          #define PJ_ENABLE_EXTRA_CHECK 0           // Disable extra checks for better performance
+          // **SIP stack customization**
+          #define PJSUA_MAX_CALLS 10                // Maximum number of simultaneous calls
+          #define PJSIP_MAX_PKT_LEN 2000            // Maximum SIP packet length (can be increased for large messages)
+          #define PJSUA_MAX_ACC 10                  // Maximum number of SIP accounts
+          #define PJSUA_MAX_PLAYERS 2               // Maximum number of audio players
+          #define PJSUA_MAX_RECORDERS 2             // Maximum number of audio recorders
+          // **Additional optimizations**
+          #define PJ_IOQUEUE_MAX_HANDLES 64         // Number of I/O handles (increase if app handles many connections)
+          #define PJ_LOG_MAX_LEVEL 3                // Set log level (0 = none, 3 = warnings, 5 = debug)
+          #define PJ_POOL_ALIGNMENT 4               // Memory alignment for better performance on ARM
+          #define PJ_POOL_INCREMENT_SIZE 128        // Memory pool increment size in bytes
+          #define PJ_POOL_ALLOC_POLICY 2            // Memory allocation policy (2 = optimized for Android)
           EOF
 
       - name: Cache environment
