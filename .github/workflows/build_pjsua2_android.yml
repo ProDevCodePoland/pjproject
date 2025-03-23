@@ -80,6 +80,18 @@ jobs:
           #define PJ_POOL_ALLOC_POLICY 2
           EOF
 
+      - name: Build Java files
+        run: |
+          cd ${{ github.workspace }}/pjsip-apps/src/swig
+          make
+
+      - name: Upload Java artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libpjsua2-${{ matrix.architecture }}
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/
+
+
       - name: Cache environment
         uses: actions/cache@v3
         with:
@@ -157,9 +169,6 @@ jobs:
            --with-ssl=$OPENSSL_DIR/include
            make dep && make clean && make
 
-          cd ${{ github.workspace }}/pjsip-apps/src/swig
-          make
-
       - name: Copy OpenSSL shared libraries to jniLibs
         run: |
           mkdir -p ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
@@ -170,8 +179,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: libpjsua2-${{ matrix.architecture }}
-          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android
-
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
   upload-all-artifacts:
     name: Upload all compiled libraries
     runs-on: ubuntu-latest
