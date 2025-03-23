@@ -47,11 +47,8 @@ jobs:
           #define PJ_CONFIG_ANDROID 1               // Enable Android compilation
           #include <pj/config_site_sample.h>        // Load default configuration as a base
           // **Basic settings**
-          #define PJ_HAS_FLOATING_POINT 0           // Disable floating point support for better performance and smaller size
           #define PJMEDIA_HAS_VIDEO 0               // Disable video support (can be enabled but requires additional dependencies)
           #define PJMEDIA_AUDIO_DEV_HAS_ANDROID_JNI 1  // Use native Android audio system
-          #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1    // Enable OpenSL ES for better audio quality
-          #define PJMEDIA_HAS_G7221_CODEC 1         // Enable G.722.1 codec (you can disable it if not needed)
           #define PJSIP_AUTH_AUTO_SEND_NEXT 1       // Auto-handle authorization
           // **Security & TLS**
           #define PJSIP_HAS_TLS_TRANSPORT 1         // Enable TLS for secure communication
