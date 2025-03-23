@@ -134,9 +134,12 @@ jobs:
           export PKG_CONFIG_PATH="$OPENSSL_DIR/pkgconfig"
 
           cd ${{ github.workspace }}
+          if [[ "${{ matrix.architecture }}" == "arm64-v8a" || "${{ matrix.architecture }}" == "armeabi-v7a" ]]; then
+            ./configure-android --use-ndk-cflags --with-ssl=$OPENSSL_DIR/include --disable-floating-point --disable-video
+          else
+            ./configure-android --use-ndk-cflags --with-ssl=$OPENSSL_DIR/include --disable-video
+          fi
           TARGET_ABI=${{ matrix.architecture }} ./configure-android \
-          --use-ndk-cflags \
-          --with-ssl=$OPENSSL_DIR/include
           make dep && make clean && make
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
