@@ -118,12 +118,6 @@ jobs:
           cp libcrypto.a libssl.a ${{ github.workspace }}/openssl-lib
           cp -v ${{ github.workspace }}/openssl-3.4.0/libcrypto.so ${{ github.workspace }}/openssl-lib
           cp -v ${{ github.workspace }}/openssl-3.4.0/libssl.so ${{ github.workspace }}/openssl-lib
-
-      - name: Upload OpenSSL ${{ matrix.architecture }} libraries as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: libpjsua2-opensll-${{ matrix.architecture }}
-          path: ${{ github.workspace }}/openssl-lib/
  
       - name: Build PJSUA2 for ${{ matrix.architecture }}
         run: |
@@ -144,11 +138,17 @@ jobs:
           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
 
+      - name: Copy OpenSSL shared libraries to jniLibs
+        run: |
+          mkdir -p ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
+          cp -v ${{ github.workspace }}/openssl-lib/libssl.so ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
+          cp -v ${{ github.workspace }}/openssl-lib/libcrypto.so ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
+
       - name: Upload ${{ matrix.architecture }} artifact
         uses: actions/upload-artifact@v4
         with:
           name: libpjsua2-${{ matrix.architecture }}
-          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main
 
   upload-all-artifacts:
     name: Upload all compiled libraries
