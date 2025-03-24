@@ -1,4 +1,4 @@
-name: Build PJSUA2 for Android (TLS Enabled)
+name: Build PJSUA2 for Android
 
 on:
   push:
@@ -18,6 +18,12 @@ jobs:
         with:
           submodules: true
 
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
       - name: Set up Android NDK
         uses: nttld/setup-ndk@v1
         with:
@@ -28,27 +34,35 @@ jobs:
           echo "ANDROID_NDK_ROOT=/opt/hostedtoolcache/ndk/r27c/x64" >> $GITHUB_ENV
           echo "$ANDROID_NDK_ROOT" >> $GITHUB_PATH
 
-      - name: Install dependencies (SWIG, OpenSSL, Crypto++)
+      - name: Install SWIG and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y swig build-essential cmake libtool pkg-config libssl-dev libcrypto++-dev
+          sudo apt-get install -y swig build-essential cmake libtool pkg-config
 
-      - name: Set up environment variables with TLS support
+      - name: Download and extract OpenSSL
         run: |
-          echo "BASE_FOLDER=${{ github.workspace }}" >> $GITHUB_ENV
-          CONFIG_SITE_PATH="${{ github.workspace }}/pjlib/include/pj/config_site.h"
-          mkdir -p "$(dirname "$CONFIG_SITE_PATH")"
-          cat <<EOF > "$CONFIG_SITE_PATH"
-          #define PJ_CONFIG_ANDROID 1
-          #define PJMEDIA_HAS_G7221_CODEC 1
-          #define PJMEDIA_HAS_VIDEO 0
-          #define PJMEDIA_AUDIO_DEV_HAS_ANDROID_JNI 1
-          #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1
-          #define PJSIP_AUTH_AUTO_SEND_NEXT 1
-          #define PJSIP_HAS_TLS_TRANSPORT 1
-          #define PJSIP_SSL_USE_BUILTIN 1
-          #include <pj/config_site_sample.h>
-          EOF
+          curl -L https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz -o openssl.tar.gz
+          tar -xvzf openssl.tar.gz
+
+      - name: Set up environment variables
+        run: |
+           echo "BASE_FOLDER=${{ github.workspace }}" >> $GITHUB_ENV
+           CONFIG_SITE_PATH="${{ github.workspace }}/pjlib/include/pj/config_site.h"
+           mkdir -p "$(dirname "$CONFIG_SITE_PATH")"
+           cat <<EOF > "$CONFIG_SITE_PATH"
+           #define PJ_CONFIG_ANDROID 1
+           #define PJMEDIA_HAS_G7221_CODEC 1
+           #include <pj/config_site_sample.h>
+           #define PJMEDIA_HAS_VIDEO 0
+           #define PJMEDIA_AUDIO_DEV_HAS_ANDROID_JNI 1
+           #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1
+           #define PJSIP_AUTH_AUTO_SEND_NEXT 1
+           #define PJSIP_HAS_TLS_TRANSPORT 1
+           #define PJSUA_MAX_ACC 10     
+           #define PJSIP_HAS_TLS_TRANSPORT 1
+           #define PJSIP_HAS_TLS 1
+           #define PJ_HAS_SSL_SOCK 1
+           EOF
 
       - name: Cache environment
         uses: actions/cache@v3
@@ -56,14 +70,13 @@ jobs:
           path: ${{ github.workspace }}
           key: pjsua2-environment-${{ github.run_id }}
 
-  build-android:
-    name: Build for ${{ matrix.abi }}
+  build-architectures:
+    name: Build for
     runs-on: ubuntu-latest
     needs: setup-environment
     strategy:
       matrix:
-        abi: [arm64-v8a, armeabi-v7a, x86, x86_64]
-
+        architecture: [arm64-v8a, armeabi-v7a, x86, x86_64]
     steps:
       - name: Restore environment
         uses: actions/cache@v3
@@ -74,31 +87,122 @@ jobs:
       - name: Grant execute permissions to all scripts
         run: chmod -R +x ${{ github.workspace }}
 
-      - name: Build for ${{ matrix.abi }} with TLS
+      - name: Set up toolchain paths
         run: |
+          export TOOLCHAIN=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64
+          echo "TOOLCHAIN=$TOOLCHAIN" >> $GITHUB_ENV
+          
+          echo "$TOOLCHAIN/bin" >> $GITHUB_PATH
+          
+          echo "CC_aarch64=$TOOLCHAIN/bin/aarch64-linux-android23-clang" >> $GITHUB_ENV
+          echo "CC_arm=$TOOLCHAIN/bin/armv7a-linux-androideabi23-clang" >> $GITHUB_ENV
+          echo "CC_x86=$TOOLCHAIN/bin/i686-linux-android23-clang" >> $GITHUB_ENV
+          echo "CC_x86_64=$TOOLCHAIN/bin/x86_64-linux-android23-clang" >> $GITHUB_ENV
+
+      - name: Build OpenSSL for ${{ matrix.architecture }}
+        run: |
+          cd ${{ github.workspace }}/openssl-3.4.0
+          
+          case "${{ matrix.architecture }}" in
+            arm64-v8a)
+              export CC=$CC_aarch64
+              ./Configure android-arm64 -D__ANDROID_API__=23 ;;
+            armeabi-v7a)
+              export CC=$CC_arm
+              ./Configure android-arm -D__ANDROID_API__=23 ;;
+            x86)
+              export CC=$CC_x86
+              ./Configure android-x86 -D__ANDROID_API__=23 ;;
+            x86_64)
+              export CC=$CC_x86_64
+              ./Configure android-x86_64 -D__ANDROID_API__=23 ;;
+          esac
+
+          make -j$(nproc)
+
+          mkdir -p ${{ github.workspace }}/openssl-lib
+          cp libcrypto.a libssl.a ${{ github.workspace }}/openssl-lib
+          cp -v ${{ github.workspace }}/openssl-3.4.0/libcrypto.so ${{ github.workspace }}/openssl-lib
+          cp -v ${{ github.workspace }}/openssl-3.4.0/libssl.so ${{ github.workspace }}/openssl-lib
+ 
+      - name: Build PJSUA2 for ${{ matrix.architecture }}
+        run: |
+          export OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.0
+          export CFLAGS="-I$OPENSSL_DIR/include"
+          export LDFLAGS="-L$OPENSSL_DIR"
+          export CPPFLAGS="-I$OPENSSL_DIR/include"
+          export PKG_CONFIG_PATH="$OPENSSL_DIR/pkgconfig"
+
+          TARGET_ABI=${{ matrix.architecture }}
+          
           cd ${{ github.workspace }}
-          TARGET_ABI=${{ matrix.abi }} ./configure-android --use-ndk-cflags --enable-tls
-          make dep && make clean && make
-          cd ${{ github.workspace }}/pjsip-apps/src/swig
+           TARGET_ABI=${{ matrix.architecture }} ./configure-android \
+           --use-ndk-cflags \
+           --with-ssl=$OPENSSL_DIR/include
+           make dep && make clean && make
+           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
 
-      - name: Upload ${{ matrix.abi }} artifact
+      # Java generates wrapper is the same on all steps. Generates in all steps isn't necessery
+      - name: Upload Java artifact
+        if: matrix.architecture == 'arm64-v8a'
         uses: actions/upload-artifact@v4
         with:
-          name: libpjsua2-${{ matrix.abi }}
-          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.abi }}
+          name: java-swing-wrapper
+          retention-days: 1
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/
 
-  upload-all-artifacts:
-    name: Upload all compiled libraries
+      - name: Copy OpenSSL shared libraries to jniLibs
+        run: |
+          mkdir -p ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
+          cp -v ${{ github.workspace }}/openssl-lib/libssl.so ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
+          cp -v ${{ github.workspace }}/openssl-lib/libcrypto.so ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
+
+      - name: Upload ${{ matrix.architecture }} artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libpjsua2-${{ matrix.architecture }}
+          retention-days: 1
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs
+
+  package-android-lib:
+    name: Package Final Android Library
     runs-on: ubuntu-latest
-    needs: build-android
+    needs: build-architectures
 
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
 
-      - name: Upload final artifact
+      - name: Create final android-lib directory
+        run: |
+          mkdir -p ${{ github.workspace }}/android-lib/pjsua2/src/main/jniLibs
+
+          # Move Java bindings (SWIG-generated) into src/main/java
+          cp -r -v ${{ github.workspace }}/java-swing-wrapper/* ${{ github.workspace }}/android-lib/
+
+          # Move native libraries (.so) into jniLibs
+          cp -r -v ${{ github.workspace }}/libpjsua2-*/* ${{ github.workspace }}/android-lib/pjsua2/src/main/jniLibs/
+
+      - name: Upload final android-lib
         uses: actions/upload-artifact@v4
         with:
-          name: pjsua2-all-architectures
-          path: libpjsua2-*/
+          name: android-lib
+          path: ${{ github.workspace }}/android-lib
+
+      - name: Grant execute permissions to all scripts
+        run: chmod -R +x ${{ github.workspace }}
+
+      - name: Build the .aar in release mode
+        run: |
+          cd ${{ github.workspace }}/android-lib
+          # Build the .aar file in release mode
+          chmod +x ./gradlew 
+          ./gradlew clean
+          ./gradlew :pjsua2:assembleRelease
+
+      - name: Upload final .aar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-lib-aar
+          path: ${{ github.workspace }}/android-lib/pjsua2/build/outputs/aar/*.aar
