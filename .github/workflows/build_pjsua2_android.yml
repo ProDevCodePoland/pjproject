@@ -191,8 +191,8 @@ jobs:
         run: |
           cd ${{ github.workspace }}/android-lib
           # Build the .aar file in release mode
-          gradlew build
-          gradlew :pjsua2 assemble
+          chmod +x ./gradlew 
+          ./gradlew :pjsua2 assemble
 
       - name: Upload final .aar artifact
         uses: actions/upload-artifact@v4
