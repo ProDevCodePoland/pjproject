@@ -134,13 +134,10 @@ jobs:
            --use-ndk-cflags \
            --with-ssl=$OPENSSL_DIR/include
            make dep && make clean && make
-
-      - name: Build Java files
-        if: matrix.architecture == 'arm64-v8a'
-        run: |
-          cd ${{ github.workspace }}/pjsip-apps/src/swig
+           cd ${{ github.workspace }}/pjsip-apps/src/swig
           make
 
+      # Java generates wrapper is the same on all steps. Generates in all steps isn't necessery
       - name: Upload Java artifact
         if: matrix.architecture == 'arm64-v8a'
         uses: actions/upload-artifact@v4
