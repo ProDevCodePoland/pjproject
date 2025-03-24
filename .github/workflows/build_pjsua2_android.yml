@@ -148,8 +148,9 @@ jobs:
           mkdir -p ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
           cp -v ${{ github.workspace }}/openssl-lib/libssl.so ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
           cp -v ${{ github.workspace }}/openssl-lib/libcrypto.so ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
+           # Ensure the directory for android-lib exists before copying
+          mkdir -p ${{ github.workspace }}/android-lib/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
           cp -r ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }} ${{ github.workspace }}/android-lib/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
-
   upload-all-artifacts:
     name: Upload all compiled libraries
     runs-on: ubuntu-latest
