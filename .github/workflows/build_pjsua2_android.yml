@@ -169,7 +169,7 @@ jobs:
         if: matrix.architecture == 'arm64-v8a'
         uses: actions/upload-artifact@v4
         with:
-          name: libpjsua2-${{ matrix.architecture }}
+          name: libpjsua2-java-swing-wrapper
           path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/
 
       - name: Copy OpenSSL shared libraries to jniLibs
