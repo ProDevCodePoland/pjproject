@@ -145,12 +145,11 @@ jobs:
         if: matrix.architecture == 'arm64-v8a'
         uses: actions/upload-artifact@v4
         with:
-          name: libpjsua2-java-swing-wrapper
+          name: java-swing-wrapper
           path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/
 
       - name: Copy OpenSSL shared libraries to jniLibs
         run: |
-          mkdir -p ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
           cp -v ${{ github.workspace }}/openssl-lib/libssl.so ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
           cp -v ${{ github.workspace }}/openssl-lib/libcrypto.so ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
 
@@ -174,7 +173,7 @@ jobs:
           mkdir -p ${{ github.workspace }}/android-lib/pjsua2/src/main/jniLibs
 
           # Move Java bindings (SWIG-generated) into src/main/java
-          cp -r -v ${{ github.workspace }}/libpjsua2-java-swing-wrapper/* ${{ github.workspace }}/android-lib/
+          cp -r -v ${{ github.workspace }}/java-swing-wrapper/* ${{ github.workspace }}/android-lib/
 
           # Move native libraries (.so) into jniLibs
           cp -r -v ${{ github.workspace }}/libpjsua2-*/* ${{ github.workspace }}/android-lib/pjsua2/src/main/jniLibs/
