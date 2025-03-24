@@ -159,25 +159,15 @@ jobs:
         with:
           name: libpjsua2-${{ matrix.architecture }}
           path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs
-  
-  upload-all-artifacts:
-    name: Upload all compiled libraries
+
+  package-android-lib:
+    name: Package Final Android Library
     runs-on: ubuntu-latest
     needs: build-architectures
 
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
-
-  # 🔹 Step 3: Package Everything into `android-lib`
-  package-android-lib:
-    name: Package Final Android Library
-    runs-on: ubuntu-latest
-    needs: upload-all-artifacts
-
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v3
 
       - name: Create final android-lib directory
         run: |
