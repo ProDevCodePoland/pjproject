@@ -173,7 +173,7 @@ jobs:
   package-android-lib:
     name: Package Final Android Library
     runs-on: ubuntu-latest
-    needs: build-architectures
+    needs: upload-all-artifacts
 
     steps:
       - name: Download all artifacts
