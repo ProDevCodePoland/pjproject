@@ -184,6 +184,9 @@ jobs:
           name: android-lib
           path: ${{ github.workspace }}/android-lib
 
+      - name: Grant execute permissions to gradlew
+        run: chmod +x ./gradlew
+
       - name: Build the .aar in release mode
         run: |
           cd ${{ github.workspace }}/android-lib
