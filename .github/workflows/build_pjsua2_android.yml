@@ -174,7 +174,7 @@ jobs:
           mkdir -p ${{ github.workspace }}/android-lib/pjsua2/src/main/jniLibs
 
           # Move Java bindings (SWIG-generated) into src/main/java
-          mv ${{ github.workspace }}/libpjsua2-java-swing-wrapper/* ${{ github.workspace }}/android-lib/pjsua2/src/main/java/org/pjsip/
+          mv ${{ github.workspace }}/libpjsua2-java-swing-wrapper/* ${{ github.workspace }}/android-lib/
 
           # Move native libraries (.so) into jniLibs
           mv ${{ github.workspace }}/libpjsua2-*/* ${{ github.workspace }}/android-lib/pjsua2/src/main/jniLibs/
