@@ -143,6 +143,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: java-swing-wrapper
+          retention-days: 1
           path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/
 
       - name: Copy OpenSSL shared libraries to jniLibs
@@ -155,6 +156,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: libpjsua2-${{ matrix.architecture }}
+          retention-days: 1
           path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs
 
   package-android-lib:
@@ -181,3 +183,15 @@ jobs:
         with:
           name: android-lib
           path: ${{ github.workspace }}/android-lib
+
+      - name: Build the .aar in release mode
+        run: |
+          cd ${{ github.workspace }}/android-lib
+          # Build the .aar file in release mode
+          ./gradlew :pjsua2:assembleRelease
+
+      - name: Upload final .aar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-lib-aar
+          path: ${{ github.workspace }}/android-lib/pjsua2/build/outputs/aar/*.aar
