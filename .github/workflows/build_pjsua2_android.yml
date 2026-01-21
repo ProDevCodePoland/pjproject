@@ -64,7 +64,9 @@ jobs:
           #define PJSIP_HAS_TLS_TRANSPORT 1
           #define PJSIP_HAS_TLS 1
           #define PJ_HAS_SSL_SOCK 1
-          EOF- name: Cache environment
+          EOF
+
+      - name: Cache environment
         uses: actions/cache@v3
         with:
           path: ${{ github.workspace }}
@@ -129,6 +131,7 @@ jobs:
           export LDFLAGS="-L$OPENSSL_DIR $LDFLAGS_16KB"
           export CPPFLAGS="-I$OPENSSL_DIR/include"
           export PKG_CONFIG_PATH="$OPENSSL_DIR/pkgconfig"
+          TARGET_ABI=${{ matrix.architecture }}
           cd ${{ github.workspace }}
           TARGET_ABI=${{ matrix.architecture }} ./configure-android \
             --use-ndk-cflags \
