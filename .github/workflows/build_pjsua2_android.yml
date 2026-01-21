@@ -1,124 +1,139 @@
-name: Build PJSUA2 Android (16KB safe, static OpenSSL)
+name: Build PJSUA2 for Android
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
 
-env:
-  ANDROID_API: 23
-  OPENSSL_VERSION: 3.4.0
-
 jobs:
-  setup:
+  setup-environment:
+    name: Setup Environment
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v3
         with:
           submodules: true
 
-      - uses: actions/setup-java@v3
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '11'
 
-      - uses: nttld/setup-ndk@v1
+      - name: Set up Android NDK
+        uses: nttld/setup-ndk@v1
         with:
           ndk-version: r27c
 
-      - name: Install deps
+      - name: Add NDK to PATH
+        run: |
+          echo "ANDROID_NDK_ROOT=/opt/hostedtoolcache/ndk/r27c/x64" >> $GITHUB_ENV
+          echo "$ANDROID_NDK_ROOT" >> $GITHUB_PATH
+
+      - name: Install SWIG and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential swig cmake libtool pkg-config curl
+          sudo apt-get install -y swig build-essential cmake libtool pkg-config
 
-      - name: Download OpenSSL
+      - name: Download and extract OpenSSL
         run: |
-          curl -L https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz
-          tar -xzf openssl.tar.gz
+          curl -L https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz -o openssl.tar.gz
+          tar -xvzf openssl.tar.gz
 
-      - name: Configure config_site.h
+      - name: Set up environment variables
         run: |
-          cat <<EOF > pjlib/include/pj/config_site.h
+          CONFIG_SITE_PATH="${{ github.workspace }}/pjlib/include/pj/config_site.h"
+          mkdir -p "$(dirname "$CONFIG_SITE_PATH")"
+          cat <<EOF > "$CONFIG_SITE_PATH"
           #define PJ_CONFIG_ANDROID 1
-          #define PJMEDIA_HAS_G711_CODEC 1
           #define PJMEDIA_HAS_G7221_CODEC 1
+          #define PJMEDIA_HAS_G711_CODEC 1
           #define PJMEDIA_HAS_VIDEO 0
           #define PJMEDIA_AUDIO_DEV_HAS_ANDROID_JNI 1
           #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1
+          #define PJSIP_AUTH_AUTO_SEND_NEXT 1
+          #define PJSIP_HAS_TLS_TRANSPORT 1
           #define PJSIP_HAS_TLS 1
           #define PJ_HAS_SSL_SOCK 1
           #define PJSUA_MAX_ACC 10
           #include <pj/config_site_sample.h>
           EOF
 
-      - uses: actions/cache@v3
+      - name: Cache environment
+        uses: actions/cache@v3
         with:
           path: ${{ github.workspace }}
-          key: pjsua2-${{ github.run_id }}
+          key: pjsua2-environment-${{ github.run_id }}
 
-  build:
-    needs: setup
+  build-architectures:
+    name: Build for architectures
     runs-on: ubuntu-latest
+    needs: setup-environment
 
     strategy:
       matrix:
-        abi: [ arm64-v8a, armeabi-v7a, x86, x86_64 ]
+        architecture: [arm64-v8a, armeabi-v7a, x86, x86_64]
 
     steps:
-      - uses: actions/cache@v3
+      - name: Restore environment
+        uses: actions/cache@v3
         with:
           path: ${{ github.workspace }}
-          key: pjsua2-${{ github.run_id }}
+          key: pjsua2-environment-${{ github.run_id }}
 
-      - name: Set toolchain
+      - name: Grant execute permissions
+        run: chmod -R +x ${{ github.workspace }}
+
+      - name: Set up toolchain paths
         run: |
           TOOLCHAIN=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64
           echo "TOOLCHAIN=$TOOLCHAIN" >> $GITHUB_ENV
           echo "$TOOLCHAIN/bin" >> $GITHUB_PATH
 
-          echo "CFLAGS=-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1" >> $GITHUB_ENV
-          echo "CXXFLAGS=-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1" >> $GITHUB_ENV
-          echo "LDFLAGS=-Wl,--no-rosegment" >> $GITHUB_ENV
-          echo "LIBS=-lssl -lcrypto" >> $GITHUB_ENV
-
-      - name: Build OpenSSL (static) ${{ matrix.abi }}
+      - name: Build OpenSSL for ${{ matrix.architecture }}
         run: |
-          cd openssl-${OPENSSL_VERSION}
+          cd ${{ github.workspace }}/openssl-3.4.0
 
-          case "${{ matrix.abi }}" in
+          case "${{ matrix.architecture }}" in
             arm64-v8a)
-              export CC=$TOOLCHAIN/bin/aarch64-linux-android${ANDROID_API}-clang
-              TARGET=android-arm64 ;;
+              export CC=$TOOLCHAIN/bin/aarch64-linux-android23-clang
+              ./Configure android-arm64 -D__ANDROID_API__=23 ;;
             armeabi-v7a)
-              export CC=$TOOLCHAIN/bin/armv7a-linux-androideabi${ANDROID_API}-clang
-              TARGET=android-arm ;;
+              export CC=$TOOLCHAIN/bin/armv7a-linux-androideabi23-clang
+              ./Configure android-arm -D__ANDROID_API__=23 ;;
             x86)
-              export CC=$TOOLCHAIN/bin/i686-linux-android${ANDROID_API}-clang
-              TARGET=android-x86 ;;
+              export CC=$TOOLCHAIN/bin/i686-linux-android23-clang
+              ./Configure android-x86 -D__ANDROID_API__=23 ;;
             x86_64)
-              export CC=$TOOLCHAIN/bin/x86_64-linux-android${ANDROID_API}-clang
-              TARGET=android-x86_64 ;;
+              export CC=$TOOLCHAIN/bin/x86_64-linux-android23-clang
+              ./Configure android-x86_64 -D__ANDROID_API__=23 ;;
           esac
-
-          ./Configure $TARGET \
-            -D__ANDROID_API__=${ANDROID_API} \
-            -DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1 \
-            no-shared no-tests
 
           make -j$(nproc)
 
-          mkdir -p lib
-          cp libssl.a libcrypto.a lib/
+          mkdir -p ${{ github.workspace }}/openssl-lib/${{ matrix.architecture }}
+          cp libcrypto.a libssl.a ${{ github.workspace }}/openssl-lib/${{ matrix.architecture }}
+          cp libcrypto.so libssl.so ${{ github.workspace }}/openssl-lib/${{ matrix.architecture }}
 
-      - name: Build PJSIP / PJSUA2
+      - name: Build PJSUA2 for ${{ matrix.architecture }}
         run: |
-          export OPENSSL_DIR=${{ github.workspace }}/openssl-${OPENSSL_VERSION}
-          export CFLAGS="$CFLAGS -I$OPENSSL_DIR/include"
-          export LDFLAGS="$LDFLAGS -L$OPENSSL_DIR/lib"
+          export OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.0
 
+          # === ONLY 16 KB SUPPORT FLAGS (SAFE) ===
+          export CFLAGS="-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1"
+          export LDFLAGS="-Wl,--no-rosegment -Wl,-z,max-page-size=16384"
+
+          export APP_PLATFORM=android-23
+          export TARGET_ABI=${{ matrix.architecture }}
+
+          cd ${{ github.workspace }}
+
+          APP_PLATFORM=android-23 \
+          TARGET_ABI=${{ matrix.architecture }} \
           ./configure-android \
             --use-ndk-cflags \
             --with-ssl=$OPENSSL_DIR
@@ -131,37 +146,50 @@ jobs:
           make
 
       - name: Upload Java bindings
-        if: matrix.abi == 'arm64-v8a'
+        if: matrix.architecture == 'arm64-v8a'
         uses: actions/upload-artifact@v4
         with:
-          name: java-bindings
-          path: pjsip-apps/src/swig/java/android
+          name: java-swig
+          retention-days: 1
+          path: pjsip-apps/src/swig/java/android/
+
+      - name: Copy OpenSSL shared libraries
+        run: |
+          mkdir -p pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
+          cp openssl-lib/${{ matrix.architecture }}/libssl.so pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
+          cp openssl-lib/${{ matrix.architecture }}/libcrypto.so pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
 
       - name: Upload native libs
         uses: actions/upload-artifact@v4
         with:
-          name: pjsua2-${{ matrix.abi }}
+          name: libpjsua2-${{ matrix.architecture }}
+          retention-days: 1
           path: pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs
 
-  aar:
-    needs: build
+  package-android-lib:
+    name: Package Final Android Library
     runs-on: ubuntu-latest
+    needs: build-architectures
 
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
 
-      - name: Assemble AAR
+      - name: Create final android-lib directory
         run: |
-          mkdir -p android-lib
-          cp -r java-bindings/* android-lib/
-          cp -r pjsua2-*/* android-lib/pjsua2/src/main/jniLibs/
+          mkdir -p android-lib/pjsua2/src/main/jniLibs
+          cp -r java-swig/* android-lib/
+          cp -r libpjsua2-*/* android-lib/pjsua2/src/main/jniLibs/
 
+      - name: Build AAR
+        run: |
           cd android-lib
           chmod +x gradlew
           ./gradlew clean
           ./gradlew :pjsua2:assembleRelease
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload final AAR
+        uses: actions/upload-artifact@v4
         with:
-          name: pjsua2-aar
+          name: android-lib-aar
           path: android-lib/pjsua2/build/outputs/aar/*.aar
