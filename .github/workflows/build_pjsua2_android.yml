@@ -1,4 +1,4 @@
-name: Build PJSUA2 for Android (16KB Page Size Compatible)
+name: Build PJSUA2 Android (16KB safe, static OpenSSL)
 
 on:
   push:
@@ -6,74 +6,69 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  ANDROID_API: 23
+  OPENSSL_VERSION: 3.4.0
+
 jobs:
-  setup-environment:
+  setup:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository with submodules
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           submodules: true
 
-      - name: Set up JDK 11
-        uses: actions/setup-java@v3
+      - uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: '11'
 
-      - name: Set up Android NDK r27c
-        uses: nttld/setup-ndk@v1
+      - uses: nttld/setup-ndk@v1
         with:
           ndk-version: r27c
 
-      - name: Install build dependencies
+      - name: Install deps
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            swig build-essential cmake libtool pkg-config curl
+            build-essential swig cmake libtool pkg-config curl
 
       - name: Download OpenSSL
         run: |
-          curl -L https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz -o openssl.tar.gz
+          curl -L https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz -o openssl.tar.gz
           tar -xzf openssl.tar.gz
 
-      - name: Configure PJSIP config_site.h
+      - name: Configure config_site.h
         run: |
-          CONFIG_SITE_PATH="${{ github.workspace }}/pjlib/include/pj/config_site.h"
-          mkdir -p "$(dirname "$CONFIG_SITE_PATH")"
-          cat <<EOF > "$CONFIG_SITE_PATH"
+          cat <<EOF > pjlib/include/pj/config_site.h
           #define PJ_CONFIG_ANDROID 1
-          #define PJMEDIA_HAS_G7221_CODEC 1
           #define PJMEDIA_HAS_G711_CODEC 1
+          #define PJMEDIA_HAS_G7221_CODEC 1
           #define PJMEDIA_HAS_VIDEO 0
           #define PJMEDIA_AUDIO_DEV_HAS_ANDROID_JNI 1
           #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1
-          #define PJSIP_AUTH_AUTO_SEND_NEXT 1
-          #define PJSIP_HAS_TLS_TRANSPORT 1
           #define PJSIP_HAS_TLS 1
           #define PJ_HAS_SSL_SOCK 1
           #define PJSUA_MAX_ACC 10
           #include <pj/config_site_sample.h>
           EOF
 
-      - name: Cache workspace
-        uses: actions/cache@v3
+      - uses: actions/cache@v3
         with:
           path: ${{ github.workspace }}
           key: pjsua2-${{ github.run_id }}
 
   build:
+    needs: setup
     runs-on: ubuntu-latest
-    needs: setup-environment
 
     strategy:
       matrix:
         abi: [ arm64-v8a, armeabi-v7a, x86, x86_64 ]
 
     steps:
-      - name: Restore cache
-        uses: actions/cache@v3
+      - uses: actions/cache@v3
         with:
           path: ${{ github.workspace }}
           key: pjsua2-${{ github.run_id }}
@@ -87,38 +82,42 @@ jobs:
           echo "CFLAGS=-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1" >> $GITHUB_ENV
           echo "CXXFLAGS=-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1" >> $GITHUB_ENV
           echo "LDFLAGS=-Wl,--no-rosegment" >> $GITHUB_ENV
+          echo "LIBS=-lssl -lcrypto" >> $GITHUB_ENV
 
-      - name: Build OpenSSL (${{ matrix.abi }})
+      - name: Build OpenSSL (static) ${{ matrix.abi }}
         run: |
-          cd openssl-3.4.0
+          cd openssl-${OPENSSL_VERSION}
+
           case "${{ matrix.abi }}" in
             arm64-v8a)
-              export CC=$TOOLCHAIN/bin/aarch64-linux-android23-clang
+              export CC=$TOOLCHAIN/bin/aarch64-linux-android${ANDROID_API}-clang
               TARGET=android-arm64 ;;
             armeabi-v7a)
-              export CC=$TOOLCHAIN/bin/armv7a-linux-androideabi23-clang
+              export CC=$TOOLCHAIN/bin/armv7a-linux-androideabi${ANDROID_API}-clang
               TARGET=android-arm ;;
             x86)
-              export CC=$TOOLCHAIN/bin/i686-linux-android23-clang
+              export CC=$TOOLCHAIN/bin/i686-linux-android${ANDROID_API}-clang
               TARGET=android-x86 ;;
             x86_64)
-              export CC=$TOOLCHAIN/bin/x86_64-linux-android23-clang
+              export CC=$TOOLCHAIN/bin/x86_64-linux-android${ANDROID_API}-clang
               TARGET=android-x86_64 ;;
           esac
 
           ./Configure $TARGET \
-            -D__ANDROID_API__=23 \
+            -D__ANDROID_API__=${ANDROID_API} \
             -DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1 \
-            no-tests shared
+            no-shared no-tests
 
           make -j$(nproc)
 
-          mkdir -p ../openssl-out/${{ matrix.abi }}
-          cp libssl.so libcrypto.so ../openssl-out/${{ matrix.abi }}
+          mkdir -p lib
+          cp libssl.a libcrypto.a lib/
 
-      - name: Build PJSUA2 (${{ matrix.abi }})
+      - name: Build PJSIP / PJSUA2
         run: |
-          export OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.0
+          export OPENSSL_DIR=${{ github.workspace }}/openssl-${OPENSSL_VERSION}
+          export CFLAGS="$CFLAGS -I$OPENSSL_DIR/include"
+          export LDFLAGS="$LDFLAGS -L$OPENSSL_DIR/lib"
 
           ./configure-android \
             --use-ndk-cflags \
@@ -131,18 +130,6 @@ jobs:
           cd pjsip-apps/src/swig
           make
 
-      - name: Copy native libs
-        run: |
-          JNI_DIR=pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.abi }}
-          mkdir -p $JNI_DIR
-          cp openssl-out/${{ matrix.abi }}/*.so $JNI_DIR
-
-      - name: Upload ABI artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: pjsua2-${{ matrix.abi }}
-          path: pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs
-
       - name: Upload Java bindings
         if: matrix.abi == 'arm64-v8a'
         uses: actions/upload-artifact@v4
@@ -150,14 +137,20 @@ jobs:
           name: java-bindings
           path: pjsip-apps/src/swig/java/android
 
-  package-aar:
-    runs-on: ubuntu-latest
+      - name: Upload native libs
+        uses: actions/upload-artifact@v4
+        with:
+          name: pjsua2-${{ matrix.abi }}
+          path: pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs
+
+  aar:
     needs: build
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/download-artifact@v4
 
-      - name: Assemble Android library
+      - name: Assemble AAR
         run: |
           mkdir -p android-lib
           cp -r java-bindings/* android-lib/
@@ -168,8 +161,7 @@ jobs:
           ./gradlew clean
           ./gradlew :pjsua2:assembleRelease
 
-      - name: Upload AAR
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: pjsua2-aar
           path: android-lib/pjsua2/build/outputs/aar/*.aar
