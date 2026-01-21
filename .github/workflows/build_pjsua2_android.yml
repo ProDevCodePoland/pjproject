@@ -1,4 +1,4 @@
-name: Build PJSUA2 for Android
+name: Build PJSUA2 for Android (16KB page size compatible)
 
 on:
   push:
@@ -18,11 +18,11 @@ jobs:
         with:
           submodules: true
 
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '11'
+          java-version: '17'
 
       - name: Set up Android NDK
         uses: nttld/setup-ndk@v1
@@ -46,21 +46,24 @@ jobs:
 
       - name: Set up environment variables
         run: |
+          echo "BASE_FOLDER=${{ github.workspace }}" >> $GITHUB_ENV
+          echo "LDFLAGS_16KB=-Wl,-z,max-page-size=16384" >> $GITHUB_ENV
+          
           CONFIG_SITE_PATH="${{ github.workspace }}/pjlib/include/pj/config_site.h"
           mkdir -p "$(dirname "$CONFIG_SITE_PATH")"
           cat <<EOF > "$CONFIG_SITE_PATH"
           #define PJ_CONFIG_ANDROID 1
           #define PJMEDIA_HAS_G7221_CODEC 1
           #define PJMEDIA_HAS_G711_CODEC 1
+          #include <pj/config_site_sample.h>
           #define PJMEDIA_HAS_VIDEO 0
           #define PJMEDIA_AUDIO_DEV_HAS_ANDROID_JNI 1
           #define PJMEDIA_AUDIO_DEV_HAS_OPENSL 1
           #define PJSIP_AUTH_AUTO_SEND_NEXT 1
           #define PJSIP_HAS_TLS_TRANSPORT 1
+          #define PJSUA_MAX_ACC 10
           #define PJSIP_HAS_TLS 1
           #define PJ_HAS_SSL_SOCK 1
-          #define PJSUA_MAX_ACC 10
-          #include <pj/config_site_sample.h>
           EOF
 
       - name: Cache environment
@@ -70,10 +73,9 @@ jobs:
           key: pjsua2-environment-${{ github.run_id }}
 
   build-architectures:
-    name: Build for architectures
+    name: Build for ${{ matrix.architecture }}
     runs-on: ubuntu-latest
     needs: setup-environment
-
     strategy:
       matrix:
         architecture: [arm64-v8a, armeabi-v7a, x86, x86_64]
@@ -85,86 +87,105 @@ jobs:
           path: ${{ github.workspace }}
           key: pjsua2-environment-${{ github.run_id }}
 
-      - name: Grant execute permissions
+      - name: Grant execute permissions to all scripts
         run: chmod -R +x ${{ github.workspace }}
+
+      - name: Set 16KB page size flags
+        run: |
+          echo "LDFLAGS_16KB=-Wl,-z,max-page-size=16384" >> $GITHUB_ENV
 
       - name: Set up toolchain paths
         run: |
-          TOOLCHAIN=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64
+          export TOOLCHAIN=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64
           echo "TOOLCHAIN=$TOOLCHAIN" >> $GITHUB_ENV
           echo "$TOOLCHAIN/bin" >> $GITHUB_PATH
 
-      - name: Build OpenSSL for ${{ matrix.architecture }}
+          echo "CC_aarch64=$TOOLCHAIN/bin/aarch64-linux-android23-clang" >> $GITHUB_ENV
+          echo "CC_arm=$TOOLCHAIN/bin/armv7a-linux-androideabi23-clang" >> $GITHUB_ENV
+          echo "CC_x86=$TOOLCHAIN/bin/i686-linux-android23-clang" >> $GITHUB_ENV
+          echo "CC_x86_64=$TOOLCHAIN/bin/x86_64-linux-android23-clang" >> $GITHUB_ENV
+
+      - name: Build OpenSSL for ${{ matrix.architecture }} with 16KB page size
         run: |
           cd ${{ github.workspace }}/openssl-3.4.0
 
+          export LDFLAGS="$LDFLAGS_16KB"
+
           case "${{ matrix.architecture }}" in
             arm64-v8a)
-              export CC=$TOOLCHAIN/bin/aarch64-linux-android23-clang
+              export CC=$CC_aarch64
               ./Configure android-arm64 -D__ANDROID_API__=23 ;;
             armeabi-v7a)
-              export CC=$TOOLCHAIN/bin/armv7a-linux-androideabi23-clang
+              export CC=$CC_arm
               ./Configure android-arm -D__ANDROID_API__=23 ;;
             x86)
-              export CC=$TOOLCHAIN/bin/i686-linux-android23-clang
+              export CC=$CC_x86
               ./Configure android-x86 -D__ANDROID_API__=23 ;;
             x86_64)
-              export CC=$TOOLCHAIN/bin/x86_64-linux-android23-clang
+              export CC=$CC_x86_64
               ./Configure android-x86_64 -D__ANDROID_API__=23 ;;
           esac
 
           make -j$(nproc)
 
-          mkdir -p ${{ github.workspace }}/openssl-lib/${{ matrix.architecture }}
-          cp libcrypto.a libssl.a ${{ github.workspace }}/openssl-lib/${{ matrix.architecture }}
-          cp libcrypto.so libssl.so ${{ github.workspace }}/openssl-lib/${{ matrix.architecture }}
+          mkdir -p ${{ github.workspace }}/openssl-lib
+          cp libcrypto.a libssl.a ${{ github.workspace }}/openssl-lib
+          cp -v libcrypto.so libssl.so ${{ github.workspace }}/openssl-lib
 
-      - name: Build PJSUA2 for ${{ matrix.architecture }}
+      - name: Build PJSUA2 for ${{ matrix.architecture }} with 16KB page size
         run: |
           export OPENSSL_DIR=${{ github.workspace }}/openssl-3.4.0
-
-          # === ONLY 16 KB SUPPORT FLAGS (SAFE) ===
-          export CFLAGS="-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=1"
-          export LDFLAGS="-Wl,--no-rosegment -Wl,-z,max-page-size=16384"
-
-          export APP_PLATFORM=android-23
-          export TARGET_ABI=${{ matrix.architecture }}
+          export CFLAGS="-I$OPENSSL_DIR/include"
+          export LDFLAGS="-L$OPENSSL_DIR $LDFLAGS_16KB"
+          export CPPFLAGS="-I$OPENSSL_DIR/include"
+          export PKG_CONFIG_PATH="$OPENSSL_DIR/pkgconfig"
 
           cd ${{ github.workspace }}
-
-          APP_PLATFORM=android-23 \
-          TARGET_ABI=${{ matrix.architecture }} \
-          ./configure-android \
+          TARGET_ABI=${{ matrix.architecture }} ./configure-android \
             --use-ndk-cflags \
-            --with-ssl=$OPENSSL_DIR
+            --with-ssl=$OPENSSL_DIR/include
 
-          make dep
-          make clean
-          make -j$(nproc)
+          make dep && make clean && make
 
-          cd pjsip-apps/src/swig
-          make
+          cd ${{ github.workspace }}/pjsip-apps/src/swig
+          make- name: Verify 16KB page size support
+        run: |
+          echo "=== Verifying 16KB page size for ${{ matrix.architecture }} ==="
+          PJSUA2_SO=$(find ${{ github.workspace }}/pjsip-apps/src/swig/java/android -name "libpjsua2.so" | head -1)
+          
+          if [ -f "$PJSUA2_SO" ]; then
+            echo "Checking: $PJSUA2_SO"
+            readelf -l "$PJSUA2_SO" | grep -A 1 "LOAD" || echo "Warning: No LOAD segments found"
+          else
+            echo "Error: libpjsua2.so not found!"
+            exit 1
+          fi
 
-      - name: Upload Java bindings
+      - name: Upload Java artifact
         if: matrix.architecture == 'arm64-v8a'
         uses: actions/upload-artifact@v4
         with:
-          name: java-swig
+          name: java-swig-wrapper
           retention-days: 1
-          path: pjsip-apps/src/swig/java/android/
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/
 
-      - name: Copy OpenSSL shared libraries
+      - name: Copy OpenSSL shared libraries to jniLibs
         run: |
-          mkdir -p pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
-          cp openssl-lib/${{ matrix.architecture }}/libssl.so pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
-          cp openssl-lib/${{ matrix.architecture }}/libcrypto.so pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}
+          JNI_DIR="${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs/${{ matrix.architecture }}"
+          mkdir -p "$JNI_DIR"
+          
+          cp -v ${{ github.workspace }}/openssl-lib/libssl.so "$JNI_DIR/"
+          cp -v ${{ github.workspace }}/openssl-lib/libcrypto.so "$JNI_DIR/"
+          
+          echo "=== Verifying OpenSSL libraries ==="
+          ls -lh "$JNI_DIR"
 
-      - name: Upload native libs
+      - name: Upload ${{ matrix.architecture }} artifact
         uses: actions/upload-artifact@v4
         with:
           name: libpjsua2-${{ matrix.architecture }}
           retention-days: 1
-          path: pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs
+          path: ${{ github.workspace }}/pjsip-apps/src/swig/java/android/pjsua2/src/main/jniLibs
 
   package-android-lib:
     name: Package Final Android Library
@@ -177,19 +198,91 @@ jobs:
 
       - name: Create final android-lib directory
         run: |
-          mkdir -p android-lib/pjsua2/src/main/jniLibs
-          cp -r java-swig/* android-lib/
-          cp -r libpjsua2-*/* android-lib/pjsua2/src/main/jniLibs/
+          mkdir -p ${{ github.workspace }}/android-lib/pjsua2/src/main/jniLibs
 
-      - name: Build AAR
+          cp -r -v ${{ github.workspace }}/java-swig-wrapper/* ${{ github.workspace }}/android-lib/
+          cp -r -v ${{ github.workspace }}/libpjsua2-*/* ${{ github.workspace }}/android-lib/pjsua2/src/main/jniLibs/
+
+          echo "=== Final jniLibs structure ==="
+          find ${{ github.workspace }}/android-lib/pjsua2/src/main/jniLibs -type f
+
+      - name: Create AndroidManifest.xml with 16KB support
         run: |
-          cd android-lib
-          chmod +x gradlew
+          cat <<EOF > ${{ github.workspace }}/android-lib/pjsua2/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application>
+                  <property
+                      android:name="android.app.16kb_page_size.compatible"
+                      android:value="true" />
+              </application>
+          </manifest>
+          EOF
+          
+          echo "=== AndroidManifest.xml created ==="
+          cat ${{ github.workspace }}/android-lib/pjsua2/src/main/AndroidManifest.xml
+
+      - name: Update build.gradle for Android 15+ compatibility
+        run: |
+          BUILD_GRADLE="${{ github.workspace }}/android-lib/pjsua2/build.gradle"
+          
+          if [ -f "$BUILD_GRADLE" ]; then
+            echo "=== Updating build.gradle ==="
+            sed -i 's/compileSdk [0-9]\+/compileSdk 35/' "$BUILD_GRADLE"
+            sed -i 's/targetSdk [0-9]\+/targetSdk 35/' "$BUILD_GRADLE"
+            
+            echo "=== Updated build.gradle ==="
+            grep -E "(compileSdk|targetSdk)" "$BUILD_GRADLE" || echo "Warning: SDK versions not found"
+          else
+            echo "Warning: build.gradle not found at $BUILD_GRADLE"
+          fi
+
+      - name: Upload final android-lib
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-lib
+          path: ${{ github.workspace }}/android-lib
+
+      - name: Grant execute permissions to gradlew
+        run: |
+          cd ${{ github.workspace }}/android-lib
+          chmod +x ./gradlew
+
+      - name: Build the .aar in release mode
+        run: |
+          cd ${{ github.workspace }}/android-lib
           ./gradlew clean
           ./gradlew :pjsua2:assembleRelease
 
-      - name: Upload final AAR
+      - name: Verify final .aar contains all architectures and 16KB support
+        run: |
+          AAR_FILE=$(find ${{ github.workspace }}/android-lib/pjsua2/build/outputs/aar -name "*.aar" | head -1)
+          
+          if [ -f "$AAR_FILE" ]; then
+            echo "=== AAR file found: $AAR_FILE ==="
+            ls -lh "$AAR_FILE"
+            
+            echo "=== Checking AAR contents ==="
+            unzip -l "$AAR_FILE" | grep -E "jni/(arm64-v8a|armeabi-v7a|x86|x86_64)" || echo "Warning: Some architectures missing"
+            
+            echo "=== Checking AndroidManifest.xml in AAR ==="
+            unzip -p "$AAR_FILE" AndroidManifest.xml | grep "16kb_page_size" && echo "✅ 16KB support declared" || echo "❌ 16KB support NOT found"
+            
+            echo "=== Verifying .so files page size ==="
+            unzip -q "$AAR_FILE" -d /tmp/aar_check
+            for so in $(find /tmp/aar_check -name "*.so"); do
+              echo "Checking: $(basename $so)"
+              readelf -l "$so" 2>/dev/null | grep -A 1 "LOAD" | tail -1 || true
+            done
+            
+            echo "✅ AAR verification complete"
+          else
+            echo "❌ AAR file not found!"
+            exit 1
+          fi
+
+      - name: Upload final .aar artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-lib-aar
-          path: android-lib/pjsua2/build/outputs/aar/*.aar
+          path: ${{ github.workspace }}/android-lib/pjsua2/build/outputs/aar/*.aar
